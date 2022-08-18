@@ -227,7 +227,7 @@
    { "name": "walk center", "from": 0, "to": 7, "direction": "forward", "color": "#000000ff" },
    { "name": "walk left", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
    { "name": "walk right", "from": 4, "to": 7, "direction": "forward", "color": "#000000ff" },
-   { "name": "jump right", "from": 8, "to": 8, "direction": "forward", "color": "#000000ff" },
+   { "name": "jump left", "from": 8, "to": 8, "direction": "forward", "color": "#000000ff" },
    { "name": "jump right", "from": 9, "to": 9, "direction": "forward", "color": "#000000ff" },
    { "name": "stand", "from": 10, "to": 13, "direction": "forward", "color": "#000000ff" },
    { "name": "Zap", "from": 14, "to": 15, "direction": "pingpong", "color": "#000000ff" },

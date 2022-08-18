@@ -22,6 +22,10 @@ impl Plugin for CollisionPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(spawn_wall_collider_system)
             .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
+            .insert_resource(RapierConfiguration {
+                gravity: Vec2::Y * -9.81 * 20.0,
+                ..default()
+            })
             .add_plugin(RapierDebugRenderPlugin::default());
     }
 }

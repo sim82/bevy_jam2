@@ -1,6 +1,6 @@
 use crate::assets::MyAssets;
 use crate::spritesheet::{Spritesheet, SpritesheetAnimation};
-use bevy::input::keyboard::KeyboardInput;
+use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
@@ -9,6 +9,23 @@ pub struct FerrisSpawnpoint;
 
 #[derive(Component)]
 pub struct PlayerInputTarget;
+
+#[derive(Component)]
+pub struct GroundState {
+    on_ground: bool,
+    jump_timer: Timer,
+    dead: bool,
+}
+
+impl Default for GroundState {
+    fn default() -> Self {
+        Self {
+            on_ground: false,
+            jump_timer: Timer::from_seconds(0.3, false),
+            dead: false,
+        }
+    }
+}
 
 fn spawn_ferris_system(
     mut commands: Commands,
@@ -47,30 +64,44 @@ fn spawn_ferris_system(
                     ..default()
                 },
                 texture_atlas: texture_atlas.clone(),
-                transform: transform.clone(),
+                transform: *transform,
                 ..default()
             })
             .insert(animation)
             .insert(RigidBody::Dynamic)
-            .insert(Collider::cuboid(6.0, 6.0))
+            // .insert(Collider::cuboid(6.0, 6.0))
+            .insert(Collider::round_cuboid(6.0, 6.0, 1.0))
             .insert(Friction {
                 coefficient: 3.0,
                 ..default() // combine_rule: todo!(),
             })
             .insert(ExternalImpulse::default())
+            .insert(ExternalForce::default())
             .insert(LockedAxes::ROTATION_LOCKED)
             .insert(PlayerInputTarget)
-            .insert(Ccd { enabled: true });
+            .insert(Ccd { enabled: true })
+            .insert(GroundState::default())
+            .insert(Velocity::default());
     }
 }
 
 fn player_input_system(
     input: Res<Input<KeyCode>>,
-    mut query: Query<&mut ExternalImpulse, With<PlayerInputTarget>>,
+    time: Res<Time>,
+    mut query: Query<
+        (&mut ExternalImpulse, &mut ExternalForce, &mut GroundState),
+        With<PlayerInputTarget>,
+    >,
 ) {
-    for mut external_impulse in &mut query {
-        let walk_impulse = 1000.0;
-        let jump_impulse = 1000.0;
+    for (mut external_impulse, mut external_force, mut ground_state) in &mut query {
+        ground_state.jump_timer.tick(time.delta());
+
+        let walk_impulse = if ground_state.on_ground {
+            1000.0
+        } else {
+            100.0
+        };
+        let jump_impulse = 15000.0;
 
         let mut force_h = 0.0;
         let mut force_v = 0.0;
@@ -80,13 +111,81 @@ fn player_input_system(
         if input.pressed(KeyCode::D) {
             force_h += walk_impulse;
         }
-        if input.pressed(KeyCode::Space) {
+        if ground_state.on_ground
+            && ground_state.jump_timer.finished()
+            && input.pressed(KeyCode::Space)
+        {
             force_v += jump_impulse;
+            ground_state.jump_timer.reset();
         }
 
         external_impulse.impulse.x = force_h;
         external_impulse.impulse.y = force_v;
-        info!("impulse: {:?}", external_impulse);
+
+        // external_force.force.x = force_h;
+        // external_force.force.y = force_v;
+
+        // info!("impulse: {:?} {:?}", external_impulse, external_force);
+    }
+}
+
+fn ground_trace_system(
+    rapier_context: Res<RapierContext>,
+    mut query: Query<(&mut GroundState, &Transform, &Collider, &Velocity)>,
+) {
+    for (mut ground_state, transform, collider, velocity) in &mut query {
+        let collider = Collider::cuboid(5.9, 6.0);
+        let ground_res = rapier_context.cast_shape(
+            transform.translation.xy(),
+            Rot::default(),
+            Vec2::Y * -1.0,
+            &collider,
+            1.0,
+            QueryFilter::only_fixed(),
+        );
+        ground_state.on_ground = ground_res.is_some();
+        if ground_state.on_ground && velocity.linvel.y < -180.0 {
+            info!("deadly impact: {}", velocity.linvel.y);
+            ground_state.dead = true;
+        }
+    }
+}
+
+fn adjust_friction_system(mut query: Query<(&mut Friction, &GroundState)>) {
+    for (mut friction, ground_state) in &mut query {
+        friction.coefficient = if ground_state.on_ground { 3.0 } else { 0.0 };
+    }
+}
+
+#[allow(clippy::collapsible_else_if)]
+fn adjust_animation_system(mut query: Query<(&GroundState, &Velocity, &mut SpritesheetAnimation)>) {
+    for (ground_state, velocity, mut animation) in &mut query {
+        let walking = velocity.linvel.x.abs() > 0.2;
+        let vel_right = velocity.linvel.x >= 0.0;
+
+        if ground_state.dead {
+            if animation.active_animation != "die" {
+                animation.start_animation("die")
+            }
+        } else {
+            if ground_state.on_ground {
+                if walking {
+                    if vel_right && animation.active_animation != "walk right" {
+                        animation.start_animation("walk right");
+                    } else if !vel_right && animation.active_animation != "walk left" {
+                        animation.start_animation("walk left");
+                    }
+                } else if !walking && animation.active_animation != "stand" {
+                    animation.start_animation("stand")
+                }
+            } else {
+                if vel_right && animation.active_animation != "jump right" {
+                    animation.start_animation("jump right");
+                } else if !vel_right && animation.active_animation != "jump left" {
+                    animation.start_animation("jump left");
+                }
+            }
+        }
     }
 }
 
@@ -95,6 +194,9 @@ pub struct FerrisPlugin;
 impl Plugin for FerrisPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_system(spawn_ferris_system)
-            .add_system(player_input_system);
+            .add_system(player_input_system)
+            .add_system(ground_trace_system)
+            .add_system(adjust_friction_system)
+            .add_system(adjust_animation_system);
     }
 }

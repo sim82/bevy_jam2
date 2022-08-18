@@ -79,7 +79,7 @@ impl Spritesheet {
 #[derive(Component)]
 pub struct SpritesheetAnimation {
     spritesheet: Handle<Spritesheet>,
-    active_animation: String,
+    pub active_animation: String,
     current_frame: Option<usize>,
     frame_timer: Option<Timer>,
 }
