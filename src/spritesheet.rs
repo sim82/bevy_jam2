@@ -133,7 +133,7 @@ fn spritesheet_animation_system(
             }
             None => Some(range.start),
         };
-        info!("current_frame: {:?}", spritesheet_animation.current_frame);
+        debug!("current_frame: {:?}", spritesheet_animation.current_frame);
         texture_atlas_sprite.index = spritesheet_animation.current_frame.unwrap();
         spritesheet_animation.frame_timer = Some(Timer::new(
             Duration::from_millis(

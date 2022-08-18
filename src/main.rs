@@ -6,6 +6,7 @@ use bevy::{
 use bevy_asset_loader::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use game3::{
+    assets::MyAssets,
     spritesheet::{Spritesheet, SpritesheetAnimation},
     MyPlugins,
 };
@@ -32,8 +33,6 @@ fn main() {
     .add_state(GameState::AssetLoading)
     .add_system_set(SystemSet::on_enter(GameState::Next).with_system(use_my_assets));
 
-    app.register_ldtk_int_cell::<WallBundle>(1);
-
     #[cfg(feature = "inspector")]
     app.add_plugin(bevy_inspector_egui::WorldInspectorPlugin::default());
     app.run();
@@ -43,18 +42,6 @@ fn setup_system(mut commands: Commands) {
     let mut bundle = Camera2dBundle::default();
     bundle.transform.scale = Vec3::new(0.25, 0.25, 1.0);
     commands.spawn_bundle(bundle);
-}
-
-#[derive(AssetCollection)]
-struct MyAssets {
-    #[asset(path = "world.ldtk")]
-    world: Handle<LdtkAsset>,
-
-    #[asset(path = "ferris2.0.json")]
-    ferris_spritesheet: Handle<Spritesheet>,
-
-    #[asset(path = "ferris2.0.png")]
-    ferris_atlas: Handle<Image>,
 }
 
 fn use_my_assets(
@@ -70,29 +57,31 @@ fn use_my_assets(
         ..Default::default()
     });
 
-    let spritesheet = spritesheets.get(&my_assets.ferris_spritesheet).unwrap();
-    info!("spritesheet: {:?}", spritesheet);
-    let num_frames = spritesheet.durations.len();
-    let texture_atlas = texture_atlases.add(TextureAtlas::from_grid(
-        my_assets.ferris_atlas.clone(),
-        Vec2::splat(16.0),
-        num_frames,
-        1,
-    ));
+    // let spritesheet = spritesheets.get(&my_assets.ferris_spritesheet).unwrap();
+    // info!("spritesheet: {:?}", spritesheet);
+    // let num_frames = spritesheet.durations.len();
+    // let texture_atlas = texture_atlases.add(TextureAtlas::from_grid(
+    //     my_assets.ferris_atlas.clone(),
+    //     Vec2::splat(16.0),
+    //     num_frames,
+    //     1,
+    // ));
 
-    let mut animation = SpritesheetAnimation::new(my_assets.ferris_spritesheet.clone());
-    animation.start_animation("walk left");
-    commands
-        .spawn_bundle(SpriteSheetBundle {
-            sprite: TextureAtlasSprite {
-                index: 0,
-                ..default()
-            },
-            texture_atlas,
-            transform: Transform::from_xyz(0.0, 0.0, 1.0),
-            ..default()
-        })
-        .insert(animation);
+    // let mut animation = SpritesheetAnimation::new(my_assets.ferris_spritesheet.clone());
+    // animation.start_animation("walk left");
+    // commands
+    //     .spawn_bundle(SpriteSheetBundle {
+    //         sprite: TextureAtlasSprite {
+    //             index: 0,
+    //             ..default()
+    //         },
+    //         texture_atlas,
+    //         transform: Transform::from_xyz(0.0, 0.0, 2.0),
+    //         ..default()
+    //     })
+    //     .insert(animation);
+
+    // commands.spawn().insert(game3::ferris::Ferris);
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
@@ -100,11 +89,3 @@ enum GameState {
     AssetLoading,
     Next,
 }
-
-#[derive(Clone, Debug, Default, Bundle, LdtkIntCell)]
-pub struct WallBundle {
-    wall: Wall,
-}
-
-#[derive(Component, Default, Clone, Debug)]
-struct Wall;
