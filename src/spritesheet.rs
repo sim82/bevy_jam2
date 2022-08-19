@@ -61,7 +61,7 @@ impl Spritesheet {
             .meta
             .frame_tags
             .iter()
-            .map(|tag| (tag.name.clone(), tag.from as usize..tag.to as usize))
+            .map(|tag| (tag.name.clone(), tag.from as usize..(tag.to + 1) as usize))
             .collect();
 
         let durations = desc.frames.iter().map(|f| f.duration as u64).collect();
@@ -94,6 +94,7 @@ impl SpritesheetAnimation {
     }
 
     pub fn start_animation(&mut self, name: &str) {
+        debug!("animations: {} -> {}", self.active_animation, name);
         self.active_animation = name.into();
         self.current_frame = None;
         self.frame_timer = None;

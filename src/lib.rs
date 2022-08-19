@@ -24,6 +24,50 @@ pub mod assets {
 }
 pub mod collision;
 pub mod world;
+
+#[derive(Component)]
+#[component(storage = "SparseSet")]
+pub enum Despawn {
+    ThisFrame,
+    TimeToLive(f32),
+}
+fn despawn_reaper_system(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut Despawn)>,
+) {
+    for (entity, mut despawn) in query.iter_mut() {
+        let despawn = match *despawn {
+            Despawn::ThisFrame => true,
+            Despawn::TimeToLive(ref mut ttl) => {
+                *ttl -= time.delta_seconds();
+                *ttl <= 0.0
+            }
+        };
+        if despawn {
+            info!("despawn {:?}", entity);
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
+pub fn exit_on_esc_system(
+    keyboard_input: Res<Input<KeyCode>>,
+    mut app_exit_events: EventWriter<bevy::app::AppExit>,
+) {
+    if keyboard_input.just_pressed(KeyCode::Escape) {
+        app_exit_events.send_default();
+    }
+}
+
+struct MiscPlugin;
+
+impl Plugin for MiscPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_system(despawn_reaper_system);
+    }
+}
+
 pub struct MyPlugins;
 
 impl PluginGroup for MyPlugins {
@@ -33,6 +77,7 @@ impl PluginGroup for MyPlugins {
             .add(world::WorldPlugin)
             .add(collision::CollisionPlugin)
             .add(ferris::FerrisPlugin)
-            .add(camera::CameraPlugin);
+            .add(camera::CameraPlugin)
+            .add(MiscPlugin);
     }
 }

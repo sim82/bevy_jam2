@@ -1,4 +1,5 @@
 use crate::assets::MyAssets;
+use crate::camera::CameraTarget;
 use crate::spritesheet::{Spritesheet, SpritesheetAnimation};
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
@@ -15,6 +16,7 @@ pub struct GroundState {
     on_ground: bool,
     jump_timer: Timer,
     dead: bool,
+    terminal_velocity: bool,
 }
 
 impl Default for GroundState {
@@ -23,6 +25,7 @@ impl Default for GroundState {
             on_ground: false,
             jump_timer: Timer::from_seconds(0.3, false),
             dead: false,
+            terminal_velocity: false,
         }
     }
 }
@@ -70,7 +73,17 @@ fn spawn_ferris_system(
             .insert(animation)
             .insert(RigidBody::Dynamic)
             // .insert(Collider::cuboid(6.0, 6.0))
-            .insert(Collider::round_cuboid(6.0, 6.0, 1.0))
+            // .insert(Collider::round_cuboid(6.0, 6.0, 1.0))
+            .insert(
+                Collider::convex_hull(&[
+                    Vec2::new(5.0, -5.0),
+                    Vec2::new(-5.0, -5.0),
+                    Vec2::new(-7.0, 3.0),
+                    Vec2::new(0.0, 8.0),
+                    Vec2::new(7.0, 3.0),
+                ])
+                .unwrap(),
+            )
             .insert(Friction {
                 coefficient: 3.0,
                 ..default() // combine_rule: todo!(),
@@ -79,6 +92,7 @@ fn spawn_ferris_system(
             .insert(ExternalForce::default())
             .insert(LockedAxes::ROTATION_LOCKED)
             .insert(PlayerInputTarget)
+            .insert(CameraTarget)
             .insert(Ccd { enabled: true })
             .insert(GroundState::default())
             .insert(Velocity::default());
@@ -134,7 +148,7 @@ fn ground_trace_system(
     mut query: Query<(&mut GroundState, &Transform, &Collider, &Velocity)>,
 ) {
     for (mut ground_state, transform, collider, velocity) in &mut query {
-        let collider = Collider::cuboid(5.9, 6.0);
+        let collider = Collider::cuboid(5.0, 6.0);
         let ground_res = rapier_context.cast_shape(
             transform.translation.xy(),
             Rot::default(),
@@ -144,7 +158,8 @@ fn ground_trace_system(
             QueryFilter::only_fixed(),
         );
         ground_state.on_ground = ground_res.is_some();
-        if ground_state.on_ground && velocity.linvel.y < -180.0 {
+        ground_state.terminal_velocity = velocity.linvel.y < -180.0;
+        if ground_state.on_ground && ground_state.terminal_velocity {
             info!("deadly impact: {}", velocity.linvel.y);
             ground_state.dead = true;
         }
@@ -158,45 +173,103 @@ fn adjust_friction_system(mut query: Query<(&mut Friction, &GroundState)>) {
 }
 
 #[allow(clippy::collapsible_else_if)]
-fn adjust_animation_system(mut query: Query<(&GroundState, &Velocity, &mut SpritesheetAnimation)>) {
+fn adjust_animation_system(
+    mut query: Query<(&GroundState, &Velocity, &mut SpritesheetAnimation), With<PlayerInputTarget>>,
+) {
     for (ground_state, velocity, mut animation) in &mut query {
         let walking = velocity.linvel.x.abs() > 0.2;
         let vel_right = velocity.linvel.x >= 0.0;
 
-        if ground_state.dead {
-            if animation.active_animation != "die" {
-                animation.start_animation("die")
+        if ground_state.on_ground {
+            if walking {
+                if vel_right && animation.active_animation != "walk right" {
+                    animation.start_animation("walk right");
+                } else if !vel_right && animation.active_animation != "walk left" {
+                    animation.start_animation("walk left");
+                }
+            } else if !walking && animation.active_animation != "stand" {
+                animation.start_animation("stand")
             }
         } else {
-            if ground_state.on_ground {
-                if walking {
-                    if vel_right && animation.active_animation != "walk right" {
-                        animation.start_animation("walk right");
-                    } else if !vel_right && animation.active_animation != "walk left" {
-                        animation.start_animation("walk left");
-                    }
-                } else if !walking && animation.active_animation != "stand" {
-                    animation.start_animation("stand")
-                }
-            } else {
-                if vel_right && animation.active_animation != "jump right" {
-                    animation.start_animation("jump right");
-                } else if !vel_right && animation.active_animation != "jump left" {
-                    animation.start_animation("jump left");
-                }
+            if ground_state.terminal_velocity && animation.active_animation != "panic" {
+                animation.start_animation("panic");
+            } else if !ground_state.terminal_velocity
+                && vel_right
+                && animation.active_animation != "jump right"
+            {
+                animation.start_animation("jump right");
+            } else if !ground_state.terminal_velocity
+                && !vel_right
+                && animation.active_animation != "jump left"
+            {
+                animation.start_animation("jump left");
             }
+        }
+    }
+}
+
+fn death_system(
+    mut commands: Commands,
+    mut query: Query<(Entity, &GroundState, &mut SpritesheetAnimation), With<PlayerInputTarget>>,
+) {
+    for (entity, ground_state, mut animation) in &mut query {
+        // info!("on ground: {:?}", ground_state.on_ground);
+
+        // if ground_state.on_ground {
+        //     info!("on ground");
+
+        // }
+        if ground_state.terminal_velocity {
+            info!("terminal velocity");
+        }
+        if ground_state.on_ground && ground_state.terminal_velocity {
+            animation.start_animation("die");
+            commands
+                .entity(entity)
+                .remove::<PlayerInputTarget>()
+                .remove::<GroundState>()
+                .insert(crate::Despawn::TimeToLive(3.5));
         }
     }
 }
 
 pub struct FerrisPlugin;
 
+mod system_labels {
+    use bevy::prelude::*;
+    #[derive(SystemLabel)]
+    pub struct Ground;
+
+    #[derive(SystemLabel)]
+    pub struct Input;
+
+    #[derive(SystemLabel)]
+    pub struct Other;
+}
+
 impl Plugin for FerrisPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_system(spawn_ferris_system)
-            .add_system(player_input_system)
-            .add_system(ground_trace_system)
-            .add_system(adjust_friction_system)
-            .add_system(adjust_animation_system);
+        app.add_system_set(
+            SystemSet::new()
+                .label(system_labels::Ground)
+                .with_system(ground_trace_system),
+        );
+
+        app.add_system_set(
+            SystemSet::new()
+                .label(system_labels::Input)
+                .after(system_labels::Ground)
+                .with_system(player_input_system)
+                .with_system(adjust_friction_system),
+        );
+
+        app.add_system_set(
+            SystemSet::new()
+                .label(system_labels::Other)
+                .after(system_labels::Input)
+                .with_system(spawn_ferris_system)
+                .with_system(adjust_animation_system)
+                .with_system(death_system.after(adjust_animation_system)),
+        );
     }
 }

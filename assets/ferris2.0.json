@@ -96,7 +96,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 100
+    "duration": 300
    },
    {
     "filename": "ferris2.0 11.aseprite",
@@ -105,7 +105,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 100
+    "duration": 300
    },
    {
     "filename": "ferris2.0 12.aseprite",
@@ -114,7 +114,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 100
+    "duration": 300
    },
    {
     "filename": "ferris2.0 13.aseprite",
@@ -123,7 +123,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 100
+    "duration": 300
    },
    {
     "filename": "ferris2.0 14.aseprite",
@@ -132,7 +132,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 50
+    "duration": 100
    },
    {
     "filename": "ferris2.0 15.aseprite",
@@ -141,7 +141,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 50
+    "duration": 100
    },
    {
     "filename": "ferris2.0 16.aseprite",
@@ -150,7 +150,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 240
+    "duration": 50
    },
    {
     "filename": "ferris2.0 17.aseprite",
@@ -159,7 +159,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 240
+    "duration": 50
    },
    {
     "filename": "ferris2.0 18.aseprite",
@@ -213,6 +213,24 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
+    "duration": 240
+   },
+   {
+    "filename": "ferris2.0 24.aseprite",
+    "frame": { "x": 384, "y": 0, "w": 16, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
+    "sourceSize": { "w": 16, "h": 16 },
+    "duration": 240
+   },
+   {
+    "filename": "ferris2.0 25.aseprite",
+    "frame": { "x": 400, "y": 0, "w": 16, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
+    "sourceSize": { "w": 16, "h": 16 },
     "duration": 2000
    }
  ],
@@ -221,7 +239,7 @@
   "version": "1.3-beta6-x64",
   "image": "ferris2.0.png",
   "format": "RGBA8888",
-  "size": { "w": 384, "h": 16 },
+  "size": { "w": 416, "h": 16 },
   "scale": "1",
   "frameTags": [
    { "name": "walk center", "from": 0, "to": 7, "direction": "forward", "color": "#000000ff" },
@@ -230,8 +248,9 @@
    { "name": "jump left", "from": 8, "to": 8, "direction": "forward", "color": "#000000ff" },
    { "name": "jump right", "from": 9, "to": 9, "direction": "forward", "color": "#000000ff" },
    { "name": "stand", "from": 10, "to": 13, "direction": "forward", "color": "#000000ff" },
-   { "name": "Zap", "from": 14, "to": 15, "direction": "pingpong", "color": "#000000ff" },
-   { "name": "die", "from": 16, "to": 23, "direction": "forward", "color": "#000000ff" }
+   { "name": "panic", "from": 14, "to": 15, "direction": "forward", "color": "#000000ff" },
+   { "name": "Zap", "from": 16, "to": 17, "direction": "pingpong", "color": "#000000ff" },
+   { "name": "die", "from": 18, "to": 25, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "body", "opacity": 255, "blendMode": "normal" },

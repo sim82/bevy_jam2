@@ -35,6 +35,8 @@ fn main() {
 
     #[cfg(feature = "inspector")]
     app.add_plugin(bevy_inspector_egui::WorldInspectorPlugin::default());
+
+    app.add_system(game3::exit_on_esc_system);
     app.run();
 }
 
