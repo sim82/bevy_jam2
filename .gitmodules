@@ -1,0 +1,3 @@
+[submodule "bevy_crates"]
+	path = bevy_crates
+	url = https://github.com/sim82/bevy_crates.git

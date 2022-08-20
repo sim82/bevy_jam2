@@ -58,7 +58,7 @@ fn spawn_ferris_system(
 
     for (entity, transform) in &added_query {
         let mut animation = SpritesheetAnimation::new(my_assets.ferris_spritesheet.clone());
-        animation.start_animation("walk left");
+        animation.start_animation("walk left", true);
 
         commands
             .spawn_bundle(SpriteSheetBundle {
@@ -73,7 +73,7 @@ fn spawn_ferris_system(
             .insert(animation)
             .insert(RigidBody::Dynamic)
             // .insert(Collider::cuboid(6.0, 6.0))
-            // .insert(Collider::round_cuboid(6.0, 6.0, 1.0))
+            // .insert(Collider::round_cuboid(7.0, 5.0, 1.0))
             .insert(
                 Collider::convex_hull(&[
                     Vec2::new(5.0, -5.0),
@@ -84,16 +84,24 @@ fn spawn_ferris_system(
                 ])
                 .unwrap(),
             )
+            // .insert(Damping {
+            //     linear_damping: 1.0,
+            //     ..default()
+            // })
             .insert(Friction {
                 coefficient: 3.0,
                 ..default() // combine_rule: todo!(),
             })
+            // .insert(Restitution {
+            //     coefficient: 0.2,
+            //     ..default()
+            // })
             .insert(ExternalImpulse::default())
             .insert(ExternalForce::default())
             .insert(LockedAxes::ROTATION_LOCKED)
             .insert(PlayerInputTarget)
             .insert(CameraTarget)
-            .insert(Ccd { enabled: true })
+            .insert(Ccd { enabled: false })
             .insert(GroundState::default())
             .insert(Velocity::default());
     }
@@ -110,12 +118,8 @@ fn player_input_system(
     for (mut external_impulse, mut external_force, mut ground_state) in &mut query {
         ground_state.jump_timer.tick(time.delta());
 
-        let walk_impulse = if ground_state.on_ground {
-            1000.0
-        } else {
-            100.0
-        };
-        let jump_impulse = 15000.0;
+        let walk_impulse = if ground_state.on_ground { 0.4 } else { 0.05 };
+        let jump_impulse = 4.0;
 
         let mut force_h = 0.0;
         let mut force_v = 0.0;
@@ -183,26 +187,26 @@ fn adjust_animation_system(
         if ground_state.on_ground {
             if walking {
                 if vel_right && animation.active_animation != "walk right" {
-                    animation.start_animation("walk right");
+                    animation.start_animation("walk right", true);
                 } else if !vel_right && animation.active_animation != "walk left" {
-                    animation.start_animation("walk left");
+                    animation.start_animation("walk left", true);
                 }
             } else if !walking && animation.active_animation != "stand" {
-                animation.start_animation("stand")
+                animation.start_animation("stand", true)
             }
         } else {
             if ground_state.terminal_velocity && animation.active_animation != "panic" {
-                animation.start_animation("panic");
+                animation.start_animation("panic", true);
             } else if !ground_state.terminal_velocity
                 && vel_right
                 && animation.active_animation != "jump right"
             {
-                animation.start_animation("jump right");
+                animation.start_animation("jump right", true);
             } else if !ground_state.terminal_velocity
                 && !vel_right
                 && animation.active_animation != "jump left"
             {
-                animation.start_animation("jump left");
+                animation.start_animation("jump left", true);
             }
         }
     }
@@ -223,12 +227,12 @@ fn death_system(
             info!("terminal velocity");
         }
         if ground_state.on_ground && ground_state.terminal_velocity {
-            animation.start_animation("die");
+            animation.start_animation("die", false);
             commands
                 .entity(entity)
                 .remove::<PlayerInputTarget>()
                 .remove::<GroundState>()
-                .insert(crate::Despawn::TimeToLive(3.5));
+                .insert(crate::DespawnToCorpse);
         }
     }
 }

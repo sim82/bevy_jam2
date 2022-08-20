@@ -47,7 +47,7 @@ mod aseprite {
 #[uuid = "ab3a0ad8-6fbc-4528-a4a5-90e7bf3fa9e1"]
 pub struct Spritesheet {
     pub image: String,
-    pub ranges: HashMap<String, std::ops::Range<usize>>,
+    pub ranges: HashMap<String, std::ops::RangeInclusive<usize>>,
     pub durations: Vec<u64>,
 }
 
@@ -61,7 +61,7 @@ impl Spritesheet {
             .meta
             .frame_tags
             .iter()
-            .map(|tag| (tag.name.clone(), tag.from as usize..(tag.to + 1) as usize))
+            .map(|tag| (tag.name.clone(), tag.from as usize..=tag.to as usize))
             .collect();
 
         let durations = desc.frames.iter().map(|f| f.duration as u64).collect();
@@ -82,6 +82,8 @@ pub struct SpritesheetAnimation {
     pub active_animation: String,
     current_frame: Option<usize>,
     frame_timer: Option<Timer>,
+    do_loop: bool,
+    end_frame: bool,
 }
 impl SpritesheetAnimation {
     pub fn new(spritesheet: Handle<Spritesheet>) -> Self {
@@ -90,14 +92,21 @@ impl SpritesheetAnimation {
             active_animation: default(),
             current_frame: None,
             frame_timer: None,
+            do_loop: false,
+            end_frame: false,
         }
     }
 
-    pub fn start_animation(&mut self, name: &str) {
-        debug!("animations: {} -> {}", self.active_animation, name);
+    pub fn start_animation(&mut self, name: &str, do_loop: bool) {
+        info!("animations: {} -> {}", self.active_animation, name);
         self.active_animation = name.into();
         self.current_frame = None;
         self.frame_timer = None;
+        self.do_loop = do_loop;
+        self.end_frame = false;
+    }
+    pub fn is_animation_finished(&self) -> bool {
+        self.end_frame
     }
 }
 fn spritesheet_animation_system(
@@ -114,6 +123,7 @@ fn spritesheet_animation_system(
                 continue;
             }
         }
+        spritesheet_animation.frame_timer = None;
 
         let spritesheet = spritesheets
             .get(&spritesheet_animation.spritesheet)
@@ -123,25 +133,33 @@ fn spritesheet_animation_system(
             .ranges
             .get(&spritesheet_animation.active_animation)
             .unwrap();
-
         spritesheet_animation.current_frame = match spritesheet_animation.current_frame {
             Some(mut current_frame) => {
-                current_frame += 1;
-                if !range.contains(&current_frame) {
-                    current_frame = range.start;
+                if current_frame == *range.end() {
+                    if spritesheet_animation.do_loop {
+                        current_frame = *range.start();
+                    }
+                    spritesheet_animation.end_frame = true;
+                } else {
+                    current_frame += 1;
                 }
+                // if !range.contains(&current_frame) {
+                //     current_frame = range.start;
+                // }
                 Some(current_frame)
             }
-            None => Some(range.start),
+            None => Some(*range.start()),
         };
         debug!("current_frame: {:?}", spritesheet_animation.current_frame);
         texture_atlas_sprite.index = spritesheet_animation.current_frame.unwrap();
-        spritesheet_animation.frame_timer = Some(Timer::new(
-            Duration::from_millis(
-                spritesheet.durations[spritesheet_animation.current_frame.unwrap()],
-            ),
-            false,
-        ));
+        if !spritesheet_animation.end_frame || spritesheet_animation.do_loop {
+            spritesheet_animation.frame_timer = Some(Timer::new(
+                Duration::from_millis(
+                    spritesheet.durations[spritesheet_animation.current_frame.unwrap()],
+                ),
+                false,
+            ));
+        }
     }
 }
 

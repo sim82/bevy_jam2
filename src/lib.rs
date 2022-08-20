@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use spritesheet::SpritesheetAnimation;
 
 pub mod camera;
 
@@ -31,6 +32,11 @@ pub enum Despawn {
     ThisFrame,
     TimeToLive(f32),
 }
+
+#[derive(Component)]
+#[component(storage = "SparseSet")]
+pub struct DespawnToCorpse;
+
 fn despawn_reaper_system(
     mut commands: Commands,
     time: Res<Time>,
@@ -51,6 +57,36 @@ fn despawn_reaper_system(
     }
 }
 
+#[allow(clippy::type_complexity)]
+fn despawn_to_corpse_system(
+    mut commands: Commands,
+    query: Query<
+        (
+            Entity,
+            &TextureAtlasSprite,
+            &Handle<TextureAtlas>,
+            &Transform,
+            &SpritesheetAnimation,
+        ),
+        With<DespawnToCorpse>,
+    >,
+) {
+    for (entity, sprite, texture_atlas, transform, animation) in &query {
+        if !animation.is_animation_finished() {
+            continue;
+        }
+        info!("despawn to corpse: {:?}", entity);
+        commands.spawn_bundle(SpriteSheetBundle {
+            sprite: sprite.clone(),
+            texture_atlas: texture_atlas.clone(),
+            transform: *transform,
+            ..default()
+        });
+
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
 pub fn exit_on_esc_system(
     keyboard_input: Res<Input<KeyCode>>,
     mut app_exit_events: EventWriter<bevy::app::AppExit>,
@@ -64,7 +100,8 @@ struct MiscPlugin;
 
 impl Plugin for MiscPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(despawn_reaper_system);
+        app.add_system(despawn_reaper_system)
+            .add_system_to_stage(CoreStage::Last, despawn_to_corpse_system);
     }
 }
 
