@@ -5,6 +5,17 @@ use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
+// tunables
+const LINEAR_DAMPING: f32 = 0.7;
+const FRICTION: f32 = 0.5;
+const RESTITUTION: f32 = 0.3;
+
+const WALK_IMPULSE_GROUND: f32 = 0.3;
+const WALK_IMPULSE_AIR: f32 = 0.05;
+const JUMP_IMPULSE: f32 = 4.0;
+
+const JUMP_TIMEOUT: f32 = 0.3;
+
 #[derive(Component, Default, Clone)]
 pub struct FerrisSpawnpoint;
 
@@ -23,7 +34,7 @@ impl Default for GroundState {
     fn default() -> Self {
         Self {
             on_ground: false,
-            jump_timer: Timer::from_seconds(0.3, false),
+            jump_timer: Timer::from_seconds(JUMP_TIMEOUT, false),
             dead: false,
             terminal_velocity: false,
         }
@@ -84,24 +95,24 @@ fn spawn_ferris_system(
                 ])
                 .unwrap(),
             )
-            // .insert(Damping {
-            //     linear_damping: 1.0,
-            //     ..default()
-            // })
-            .insert(Friction {
-                coefficient: 3.0,
-                ..default() // combine_rule: todo!(),
+            .insert(Damping {
+                linear_damping: LINEAR_DAMPING,
+                ..default()
             })
-            // .insert(Restitution {
-            //     coefficient: 0.2,
-            //     ..default()
-            // })
+            .insert(Friction {
+                coefficient: FRICTION,
+                ..default()
+            })
+            .insert(Restitution {
+                coefficient: RESTITUTION,
+                ..default()
+            })
             .insert(ExternalImpulse::default())
             .insert(ExternalForce::default())
             .insert(LockedAxes::ROTATION_LOCKED)
             .insert(PlayerInputTarget)
             .insert(CameraTarget)
-            .insert(Ccd { enabled: false })
+            .insert(Ccd { enabled: true })
             .insert(GroundState::default())
             .insert(Velocity::default());
     }
@@ -110,40 +121,42 @@ fn spawn_ferris_system(
 fn player_input_system(
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
-    mut query: Query<
-        (&mut ExternalImpulse, &mut ExternalForce, &mut GroundState),
-        With<PlayerInputTarget>,
-    >,
+    mut query: Query<(&mut ExternalImpulse, &mut GroundState, &Velocity), With<PlayerInputTarget>>,
 ) {
-    for (mut external_impulse, mut external_force, mut ground_state) in &mut query {
+    for (mut external_impulse, mut ground_state, velocity) in &mut query {
         ground_state.jump_timer.tick(time.delta());
 
-        let walk_impulse = if ground_state.on_ground { 0.4 } else { 0.05 };
-        let jump_impulse = 4.0;
+        // info!("velocity: {:?}", velocity);
 
-        let mut force_h = 0.0;
-        let mut force_v = 0.0;
+        let walk_impulse = if ground_state.on_ground {
+            WALK_IMPULSE_GROUND
+        } else {
+            WALK_IMPULSE_AIR
+        };
+
+        let mut impulse_h = 0.0;
+        let mut impulse_v = 0.0;
         if input.pressed(KeyCode::A) {
-            force_h -= walk_impulse;
+            impulse_h -= walk_impulse;
         }
         if input.pressed(KeyCode::D) {
-            force_h += walk_impulse;
+            impulse_h += walk_impulse;
         }
         if ground_state.on_ground
             && ground_state.jump_timer.finished()
             && input.pressed(KeyCode::Space)
         {
-            force_v += jump_impulse;
+            impulse_v += JUMP_IMPULSE;
             ground_state.jump_timer.reset();
         }
 
-        external_impulse.impulse.x = force_h;
-        external_impulse.impulse.y = force_v;
+        if impulse_h.signum() == velocity.linvel.x.signum() && velocity.linvel.x.abs() > 120.0 {
+            info!("clamp walk");
+            impulse_h = 0.0;
+        }
 
-        // external_force.force.x = force_h;
-        // external_force.force.y = force_v;
-
-        // info!("impulse: {:?} {:?}", external_impulse, external_force);
+        external_impulse.impulse.x = impulse_h;
+        external_impulse.impulse.y = impulse_v;
     }
 }
 
@@ -263,8 +276,7 @@ impl Plugin for FerrisPlugin {
             SystemSet::new()
                 .label(system_labels::Input)
                 .after(system_labels::Ground)
-                .with_system(player_input_system)
-                .with_system(adjust_friction_system),
+                .with_system(player_input_system), // .with_system(adjust_friction_system),
         );
 
         app.add_system_set(

@@ -1,3 +1,5 @@
+#![feature(slice_group_by)]
+
 use bevy::prelude::*;
 use spritesheet::SpritesheetAnimation;
 
