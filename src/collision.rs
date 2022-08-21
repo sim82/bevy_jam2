@@ -19,6 +19,7 @@ fn spawn_wall_collider_system(
     let tile_size = Vec2::new(16.0, 16.0);
     let tile_halfsize = tile_size / 2.0;
 
+    // cluster tiles by row
     let mut by_row = HashMap::<u32, Vec<u32>>::new();
     for (_entity, transform) in &query {
         let tile_int = (transform.translation.xy() - tile_halfsize) / 16.0;
@@ -35,27 +36,34 @@ fn spawn_wall_collider_system(
         }
     }
 
-    info!("by rows: {:?}", by_row);
+    debug!("by rows: {:?}", by_row);
 
+    // find contiguous runs in rows (i.e. merge horizontally)
     let mut by_run = HashMap::<Range<u32>, Vec<u32>>::new();
-
     for (y, mut row) in by_row {
         row.sort();
         for run in row.group_by(|a, b| *a + 1 == *b) {
-            info!("run: {} {:?}", y, run);
-            // let first = run[0];
-            // let last = *run.last().unwrap();
-            // match by_run.entry(first..last + 1) {
-            //     bevy::utils::hashbrown::hash_map::Entry::Occupied(mut e) => e.get_mut().push(y),
-            //     bevy::utils::hashbrown::hash_map::Entry::Vacant(e) => {
-            //         e.insert(vec![y]);
-            //     }
-            // }
+            debug!("run: {} {:?}", y, run);
+            let first = run[0];
+            let last = *run.last().unwrap();
+            match by_run.entry(first..last + 1) {
+                bevy::utils::hashbrown::hash_map::Entry::Occupied(mut e) => e.get_mut().push(y),
+                bevy::utils::hashbrown::hash_map::Entry::Vacant(e) => {
+                    e.insert(vec![y]);
+                }
+            }
+        }
+    }
 
-            let p0 = Vec2::new(run[0] as f32 * 16.0, y as f32 * 16.0);
+    // find contiguous 'stacks' of row runs (i.e. merge vertically)
+    for (h_run, mut y) in by_run {
+        y.sort();
+        debug!("h: {:?}: {:?}", h_run, y);
+        for v_run in y.group_by(|a, b| (*a + 1) == *b) {
+            let p0 = Vec2::new(h_run.start as f32 * 16.0, v_run[0] as f32 * 16.0);
             let p1 = Vec2::new(
-                (*run.last().unwrap() + 1) as f32 * 16.0,
-                (y + 1) as f32 * 16.0,
+                h_run.end as f32 * 16.0,
+                (v_run.last().unwrap() + 1) as f32 * 16.0,
             );
 
             let mid = (p0 + p1) / 2.0;
