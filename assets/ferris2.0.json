@@ -6,7 +6,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 100
+    "duration": 300
    },
    {
     "filename": "ferris2.0 1.aseprite",
@@ -15,7 +15,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 100
+    "duration": 300
    },
    {
     "filename": "ferris2.0 2.aseprite",
@@ -24,7 +24,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 100
+    "duration": 300
    },
    {
     "filename": "ferris2.0 3.aseprite",
@@ -33,7 +33,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 100
+    "duration": 300
    },
    {
     "filename": "ferris2.0 4.aseprite",
@@ -96,7 +96,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 300
+    "duration": 100
    },
    {
     "filename": "ferris2.0 11.aseprite",
@@ -105,7 +105,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 300
+    "duration": 100
    },
    {
     "filename": "ferris2.0 12.aseprite",
@@ -114,7 +114,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 300
+    "duration": 100
    },
    {
     "filename": "ferris2.0 13.aseprite",
@@ -123,7 +123,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 300
+    "duration": 100
    },
    {
     "filename": "ferris2.0 14.aseprite",
@@ -132,7 +132,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 100
+    "duration": 300
    },
    {
     "filename": "ferris2.0 15.aseprite",
@@ -141,7 +141,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 100
+    "duration": 300
    },
    {
     "filename": "ferris2.0 16.aseprite",
@@ -150,7 +150,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 50
+    "duration": 300
    },
    {
     "filename": "ferris2.0 17.aseprite",
@@ -159,7 +159,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 50
+    "duration": 300
    },
    {
     "filename": "ferris2.0 18.aseprite",
@@ -168,7 +168,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 240
+    "duration": 100
    },
    {
     "filename": "ferris2.0 19.aseprite",
@@ -177,7 +177,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 240
+    "duration": 100
    },
    {
     "filename": "ferris2.0 20.aseprite",
@@ -186,7 +186,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 240
+    "duration": 50
    },
    {
     "filename": "ferris2.0 21.aseprite",
@@ -195,7 +195,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 240
+    "duration": 50
    },
    {
     "filename": "ferris2.0 22.aseprite",
@@ -204,7 +204,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 240
+    "duration": 64
    },
    {
     "filename": "ferris2.0 23.aseprite",
@@ -213,7 +213,7 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 240
+    "duration": 64
    },
    {
     "filename": "ferris2.0 24.aseprite",
@@ -222,11 +222,47 @@
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
     "sourceSize": { "w": 16, "h": 16 },
-    "duration": 240
+    "duration": 64
    },
    {
     "filename": "ferris2.0 25.aseprite",
     "frame": { "x": 400, "y": 0, "w": 16, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
+    "sourceSize": { "w": 16, "h": 16 },
+    "duration": 64
+   },
+   {
+    "filename": "ferris2.0 26.aseprite",
+    "frame": { "x": 416, "y": 0, "w": 16, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
+    "sourceSize": { "w": 16, "h": 16 },
+    "duration": 64
+   },
+   {
+    "filename": "ferris2.0 27.aseprite",
+    "frame": { "x": 432, "y": 0, "w": 16, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
+    "sourceSize": { "w": 16, "h": 16 },
+    "duration": 64
+   },
+   {
+    "filename": "ferris2.0 28.aseprite",
+    "frame": { "x": 448, "y": 0, "w": 16, "h": 16 },
+    "rotated": false,
+    "trimmed": false,
+    "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
+    "sourceSize": { "w": 16, "h": 16 },
+    "duration": 64
+   },
+   {
+    "filename": "ferris2.0 29.aseprite",
+    "frame": { "x": 464, "y": 0, "w": 16, "h": 16 },
     "rotated": false,
     "trimmed": false,
     "spriteSourceSize": { "x": 0, "y": 0, "w": 16, "h": 16 },
@@ -239,18 +275,22 @@
   "version": "1.3-beta6-x64",
   "image": "ferris2.0.png",
   "format": "RGBA8888",
-  "size": { "w": 416, "h": 16 },
+  "size": { "w": 480, "h": 16 },
   "scale": "1",
   "frameTags": [
-   { "name": "walk center", "from": 0, "to": 7, "direction": "forward", "color": "#000000ff" },
-   { "name": "walk left", "from": 0, "to": 3, "direction": "forward", "color": "#000000ff" },
-   { "name": "walk right", "from": 4, "to": 7, "direction": "forward", "color": "#000000ff" },
-   { "name": "jump left", "from": 8, "to": 8, "direction": "forward", "color": "#000000ff" },
-   { "name": "jump right", "from": 9, "to": 9, "direction": "forward", "color": "#000000ff" },
-   { "name": "stand", "from": 10, "to": 13, "direction": "forward", "color": "#000000ff" },
-   { "name": "panic", "from": 14, "to": 15, "direction": "forward", "color": "#000000ff" },
-   { "name": "Zap", "from": 16, "to": 17, "direction": "pingpong", "color": "#000000ff" },
-   { "name": "die", "from": 18, "to": 25, "direction": "forward", "color": "#000000ff" }
+   { "name": "roll0", "from": 0, "to": 0, "direction": "forward", "color": "#000000ff" },
+   { "name": "roll1", "from": 1, "to": 1, "direction": "forward", "color": "#000000ff" },
+   { "name": "roll2", "from": 2, "to": 2, "direction": "forward", "color": "#000000ff" },
+   { "name": "roll3", "from": 3, "to": 3, "direction": "forward", "color": "#000000ff" },
+   { "name": "walk center", "from": 4, "to": 11, "direction": "forward", "color": "#000000ff" },
+   { "name": "walk left", "from": 4, "to": 7, "direction": "forward", "color": "#000000ff" },
+   { "name": "walk right", "from": 8, "to": 11, "direction": "forward", "color": "#000000ff" },
+   { "name": "jump left", "from": 12, "to": 12, "direction": "forward", "color": "#000000ff" },
+   { "name": "jump right", "from": 13, "to": 13, "direction": "forward", "color": "#000000ff" },
+   { "name": "stand", "from": 14, "to": 17, "direction": "forward", "color": "#000000ff" },
+   { "name": "panic", "from": 18, "to": 19, "direction": "forward", "color": "#000000ff" },
+   { "name": "Zap", "from": 20, "to": 21, "direction": "pingpong", "color": "#000000ff" },
+   { "name": "die", "from": 22, "to": 29, "direction": "forward", "color": "#000000ff" }
   ],
   "layers": [
    { "name": "body", "opacity": 255, "blendMode": "normal" },
