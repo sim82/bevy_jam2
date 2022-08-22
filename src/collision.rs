@@ -90,10 +90,10 @@ impl Plugin for CollisionPlugin {
                 gravity: Vec2::Y * -9.81 * 20.0,
                 ..default()
             })
-            // .add_plugin(RapierDebugRenderPlugin {
-            //     mode: DebugRenderMode::all(),
-            //     ..default()
-            // })
-            ;
+        // .add_plugin(RapierDebugRenderPlugin {
+        //     mode: DebugRenderMode::all(),
+        //     ..default()
+        // })
+        ;
     }
 }

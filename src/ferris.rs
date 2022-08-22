@@ -4,21 +4,23 @@ use crate::spritesheet::{Spritesheet, SpritesheetAnimation};
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
+use rand::Rng;
 
 // tunables
 const LINEAR_DAMPING: f32 = 0.7;
+const BALL_LINEAR_DAMPING: f32 = 1.0;
 const FRICTION: f32 = 0.5;
 const BALL_FRICTION: f32 = 0.3;
 const RESTITUTION: f32 = 0.3;
-const BALL_RESTITUTION: f32 = 1.0;
+const BALL_RESTITUTION: f32 = 2.0;
 
 const WALK_IMPULSE_GROUND: f32 = 0.3;
 const WALK_IMPULSE_AIR: f32 = 0.05;
 const JUMP_IMPULSE: f32 = 4.0;
 
-const JUMP_IMPULSE_BALL: f32 = 6.0;
+const JUMP_IMPULSE_BALL: f32 = 4.0;
 
-const ROT_IMPULSE: f32 = 0.0001;
+const ROT_IMPULSE: f32 = 0.00005;
 
 const JUMP_TIMEOUT: f32 = 0.3;
 const LETHAL_VELOCITY: f32 = -150.0;
@@ -37,6 +39,12 @@ pub struct GroundState {
     jump_timer: Timer,
     dead: bool,
     terminal_velocity: bool,
+    wobble: bool,
+}
+
+#[derive(Component)]
+pub struct Bubble {
+    wobble_timer: Timer,
 }
 
 impl Default for GroundState {
@@ -46,6 +54,7 @@ impl Default for GroundState {
             jump_timer: Timer::from_seconds(JUMP_TIMEOUT, false),
             dead: false,
             terminal_velocity: false,
+            wobble: false,
         }
     }
 }
@@ -80,7 +89,7 @@ fn spawn_ferris_system(
         let mut animation = SpritesheetAnimation::new(my_assets.ferris_spritesheet.clone());
         animation.start_animation("walk left", true);
 
-        let mut commands = commands.spawn_bundle(SpriteSheetBundle {
+        let mut entity_commands = commands.spawn_bundle(SpriteSheetBundle {
             sprite: TextureAtlasSprite {
                 index: 0,
                 ..default()
@@ -89,7 +98,7 @@ fn spawn_ferris_system(
             transform: *transform,
             ..default()
         });
-        commands
+        entity_commands
             .insert(animation)
             .insert(RigidBody::Dynamic)
             // .insert(Collider::cuboid(6.0, 6.0))
@@ -102,7 +111,7 @@ fn spawn_ferris_system(
             .insert(Velocity::default());
 
         if WALKING {
-            commands
+            entity_commands
                 .insert(LockedAxes::ROTATION_LOCKED)
                 .insert(
                     Collider::convex_hull(&[
@@ -127,8 +136,8 @@ fn spawn_ferris_system(
                     ..default()
                 });
         } else {
-            commands
-                .insert(Collider::ball(8.0))
+            entity_commands
+                .insert(Collider::ball(14.0))
                 .insert(Restitution {
                     coefficient: BALL_RESTITUTION,
                     ..default()
@@ -136,6 +145,21 @@ fn spawn_ferris_system(
                 .insert(Friction {
                     coefficient: BALL_FRICTION,
                     ..default()
+                })
+                .insert(Damping {
+                    linear_damping: BALL_LINEAR_DAMPING,
+                    angular_damping: 1.0,
+                    // ..default()
+                })
+                .insert(ColliderMassProperties::Density(0.3));
+
+            commands
+                .spawn_bundle(SpriteBundle {
+                    texture: my_assets.bubble.clone(),
+                    ..default()
+                })
+                .insert(Bubble {
+                    wobble_timer: Timer::from_seconds(3.0, false),
                 });
         }
     }
@@ -177,13 +201,16 @@ fn player_input_system(
             }
         } else {
             if input.pressed(KeyCode::A) {
+                impulse_h -= WALK_IMPULSE_AIR;
                 rot_impulse += ROT_IMPULSE;
             }
             if input.pressed(KeyCode::D) {
+                impulse_h += WALK_IMPULSE_AIR;
+
                 rot_impulse -= ROT_IMPULSE;
             }
         }
-        if ground_state.on_ground
+        if (ground_state.on_ground || !WALKING)
             && ground_state.jump_timer.finished()
             && input.pressed(KeyCode::Space)
         {
@@ -226,6 +253,8 @@ fn ground_trace_system(
             info!("deadly impact: {}", velocity.linvel.y);
             ground_state.dead = true;
         }
+
+        ground_state.wobble = ground_state.on_ground && velocity.linvel.y < -30.0;
     }
 }
 
@@ -328,6 +357,45 @@ fn death_system(
     }
 }
 
+fn track_bubble_system(
+    time: Res<Time>,
+    mut bubble_query: Query<(&mut Bubble, &mut Transform)>,
+    ferris_query: Query<(&Transform, &GroundState), (With<PlayerInputTarget>, Without<Bubble>)>,
+) {
+    if let Ok((mut bubble, mut bubble_transform)) = bubble_query.get_single_mut() {
+        bubble.wobble_timer.tick(time.delta());
+        if let Ok((ferris, ground_state)) = ferris_query.get_single() {
+            bubble_transform.translation = ferris.translation;
+            if ground_state.wobble {
+                bubble.wobble_timer.reset();
+            }
+        }
+
+        // combine (pun intended) three wobble modes per dimension. try to get low periodicity
+        let tx1 = time.seconds_since_startup() * 1.5;
+        let ty1 = time.seconds_since_startup() * 2.5;
+        let tx2 = time.seconds_since_startup() * 8.5;
+        let ty2 = time.seconds_since_startup() * 7.0;
+        let tx3 = time.seconds_since_startup() * 19.0;
+        let ty3 = time.seconds_since_startup() * 23.0;
+
+        // blend between low and high frequency wobble modes, based on wobble-timer
+        let l = 1.0
+            - (bubble.wobble_timer.elapsed_secs() / bubble.wobble_timer.duration().as_secs_f32());
+
+        let c1 = 0.05 * (1.0 - l);
+        let c2 = 0.05 * l;
+        let c3 = 0.025 * l;
+
+        // info!("l: {}", l);
+
+        bubble_transform.scale.x =
+            1.0 + (tx1.sin() as f32) * c1 + (tx2.cos() as f32) * c2 + (tx3.sin() as f32) * c3;
+        bubble_transform.scale.y =
+            1.0 + (ty1.sin() as f32) * c1 + (ty2.cos() as f32) * c2 + (ty3.sin() as f32) * c3;
+    }
+}
+
 pub struct FerrisPlugin;
 
 mod system_labels {
@@ -365,5 +433,6 @@ impl Plugin for FerrisPlugin {
                 .with_system(adjust_animation_system)
                 .with_system(death_system.after(adjust_animation_system)),
         );
+        app.add_system_to_stage(CoreStage::Last, track_bubble_system);
     }
 }

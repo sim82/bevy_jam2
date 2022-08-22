@@ -23,6 +23,9 @@ pub mod assets {
 
         #[asset(path = "ferris2.0.png")]
         pub ferris_atlas: Handle<Image>,
+
+        #[asset(path = "bubble.png")]
+        pub bubble: Handle<Image>,
     }
 }
 pub mod collision;
