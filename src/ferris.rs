@@ -27,6 +27,8 @@ const LETHAL_VELOCITY: f32 = -150.0;
 
 const WALKING: bool = true;
 
+const MAX_WALK_VEL: f32 = 90.0;
+
 #[derive(Component, Default, Clone)]
 pub struct FerrisSpawnpoint;
 
@@ -218,7 +220,9 @@ fn player_input_system(
             ground_state.jump_timer.reset();
         }
 
-        if impulse_h.signum() == velocity.linvel.x.signum() && velocity.linvel.x.abs() > 120.0 {
+        if impulse_h.signum() == velocity.linvel.x.signum()
+            && velocity.linvel.x.abs() > MAX_WALK_VEL
+        {
             info!("clamp walk");
             impulse_h = 0.0;
         }
@@ -334,15 +338,18 @@ fn adjust_animation_system(
 
 fn death_system(
     mut commands: Commands,
-    mut query: Query<(Entity, &GroundState, &mut SpritesheetAnimation), With<PlayerInputTarget>>,
+    mut query: Query<
+        (
+            Entity,
+            &GroundState,
+            &mut SpritesheetAnimation,
+            &mut LockedAxes,
+            &mut Velocity,
+        ),
+        With<PlayerInputTarget>,
+    >,
 ) {
-    for (entity, ground_state, mut animation) in &mut query {
-        // info!("on ground: {:?}", ground_state.on_ground);
-
-        // if ground_state.on_ground {
-        //     info!("on ground");
-
-        // }
+    for (entity, ground_state, mut animation, mut locked_axes, mut velocity) in &mut query {
         if ground_state.terminal_velocity {
             info!("terminal velocity");
         }
@@ -353,6 +360,10 @@ fn death_system(
                 .remove::<PlayerInputTarget>()
                 .remove::<GroundState>()
                 .insert(crate::DespawnToCorpse);
+
+            // 'hard impact': lock translation and zero velocity to prevent further physics (bounce back)
+            *locked_axes = LockedAxes::all();
+            velocity.linvel = Vec2::ZERO;
         }
     }
 }
