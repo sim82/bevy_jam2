@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{math::Vec3Swizzles, prelude::*};
 
 #[derive(Component)]
 pub struct CameraTarget;
@@ -9,7 +9,7 @@ fn track_camera_system(
     if let (Ok(mut camera_transform), Ok(target_transform)) =
         (camera_query.get_single_mut(), target_query.get_single())
     {
-        let dist = target_transform.translation - camera_transform.translation;
+        let dist = target_transform.translation.xy() - camera_transform.translation.xy();
         let l = dist.length();
         const DEADZONE: f32 = 32.0;
         const OUTER: f32 = 64.0;
@@ -18,7 +18,7 @@ fn track_camera_system(
         if l > DEADZONE {
             let dir = dist.normalize_or_zero();
             let v = ((l - DEADZONE).clamp(0.0, OUTER) / OUTER) * MAX_SPEED;
-            camera_transform.translation += dir * v;
+            camera_transform.translation += (dir * v).extend(0.0);
         }
     }
 }
