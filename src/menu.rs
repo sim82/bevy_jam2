@@ -15,11 +15,11 @@ fn setup_menu_system(
     // if !spawnpoint_query.is_empty() {
     //     info!("send spawn");
     //     let pos = spawnpoint_query.iter().next().unwrap().translation;
-    event_writer.send(SpawnFerrisEvent {
-        pos: Vec3::new(200.0, 176.0, 0.0),
-        t: SpawnFerrisType::Bubble,
-        despawn: true,
-    });
+    // event_writer.send(SpawnFerrisEvent {
+    //     pos: Vec3::new(200.0, 176.0, 0.0),
+    //     t: SpawnFerrisType::Bubble,
+    //     despawn: true,
+    // });
     // }
     for mut transform in &mut camera_query {
         transform.scale.x = 0.35;

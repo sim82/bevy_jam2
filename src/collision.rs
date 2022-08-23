@@ -102,7 +102,7 @@ fn spawn_wall_collider_system(
 
             let mid = (p0 + p1) / 2.0;
             let halfsize = (p1 - p0) / 2.0;
-            info!("{:?} {:?}", mid, halfsize);
+            debug!("{:?} {:?}", mid, halfsize);
             let entity = commands
                 .spawn()
                 .insert_bundle(SpatialBundle {

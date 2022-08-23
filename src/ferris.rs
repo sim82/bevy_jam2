@@ -92,11 +92,13 @@ fn spawn_ferris_at_spawnpoint(
     // ferris_query: Query<&PlayerInputTarget>,
     mut event_writer: EventWriter<SpawnFerrisEvent>,
 ) {
-    if !spawnpoint_query.is_empty() {
-        info!("spawn ferris >>>>>>>>>>>>>>>");
-        let pos = spawnpoint_query.iter().next().unwrap().translation;
+    for Transform {
+        translation: pos, ..
+    } in &spawnpoint_query
+    {
+        info!("spawnpoint added {:?} >>>>>>>>>>>>>>>", pos);
         event_writer.send(SpawnFerrisEvent {
-            pos,
+            pos: *pos,
             t: SpawnFerrisType::Bubble,
             despawn: true,
         });
@@ -536,13 +538,12 @@ impl Plugin for FerrisPlugin {
                 .after(system_labels::Input)
                 .with_system(death_system.after(adjust_animation_system)),
         );
-        app.add_system_set(
-            SystemSet::on_update(GameState::InGame).with_system(spawn_ferris_at_spawnpoint),
-        );
+        // app.add_system_set(SystemSet::on_update(GameState::InGame));
 
         app.add_system(bubble_wobble_system)
             .add_system(spawn_ferris_system)
-            .add_system(adjust_animation_system);
+            .add_system(adjust_animation_system)
+            .add_system(spawn_ferris_at_spawnpoint);
 
         app.add_event::<SpawnFerrisEvent>();
     }

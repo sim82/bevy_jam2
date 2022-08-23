@@ -2186,20 +2186,6 @@
 							"defUid": 57,
 							"px": [32,144],
 							"fieldInstances": []
-						},
-						{
-							"__identifier": "Player",
-							"__grid": [15,4],
-							"__pivot": [0,0],
-							"__tags": [],
-							"__tile": null,
-							"__smartColor": "#94D9B3",
-							"iid": "3d7d9c50-02f0-11ed-a788-b5328a589fc9",
-							"width": 16,
-							"height": 16,
-							"defUid": 57,
-							"px": [240,64],
-							"fieldInstances": []
 						}
 					]
 				},
@@ -2408,7 +2394,7 @@
 					"entityInstances": [
 						{
 							"__identifier": "Player",
-							"__grid": [11,1],
+							"__grid": [12,5],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": null,
@@ -2417,7 +2403,7 @@
 							"width": 16,
 							"height": 16,
 							"defUid": 57,
-							"px": [176,16],
+							"px": [192,80],
 							"fieldInstances": []
 						}
 					]
