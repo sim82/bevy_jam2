@@ -1,15 +1,7 @@
-use bevy::{
-    asset::AssetServerSettings,
-    prelude::*,
-    render::{render_resource::Texture, texture::ImageSettings},
-};
+use bevy::{asset::AssetServerSettings, prelude::*, render::texture::ImageSettings};
 use bevy_asset_loader::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
-use game3::{
-    assets::MyAssets,
-    spritesheet::{Spritesheet, SpritesheetAnimation},
-    MyPlugins,
-};
+use game3::{assets::MyAssets, MyPlugins};
 
 fn main() {
     let mut app = App::new();
@@ -47,12 +39,7 @@ fn setup_system(mut commands: Commands) {
     commands.spawn_bundle(bundle);
 }
 
-fn use_my_assets(
-    mut commands: Commands,
-    my_assets: Res<MyAssets>,
-    spritesheets: Res<Assets<Spritesheet>>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-) {
+fn use_my_assets(mut commands: Commands, my_assets: Res<MyAssets>) {
     // do something using the asset handles from the resource
     info!("use my assets");
     commands.spawn_bundle(LdtkWorldBundle {

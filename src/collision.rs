@@ -1,14 +1,9 @@
 use std::ops::Range;
 
 use crate::world::Wall;
-use bevy::{
-    math::Vec3Swizzles,
-    prelude::*,
-    utils::{HashMap, HashSet},
-};
+use bevy::{math::Vec3Swizzles, prelude::*, utils::HashMap};
 use bevy_ecs_ldtk::LevelSelection;
-use bevy_ecs_tilemap::prelude::*;
-use bevy_rapier2d::{prelude::*, rapier::prelude::IntegrationParameters};
+use bevy_rapier2d::prelude::*;
 
 #[derive(Component)]
 struct ColliderRoot {

@@ -3,7 +3,6 @@ use bevy::{
     asset::{AssetLoader, LoadedAsset},
     prelude::*,
     reflect::TypeUuid,
-    sprite,
 };
 use std::{collections::HashMap, path::Path, time::Duration};
 
@@ -52,7 +51,7 @@ pub struct Spritesheet {
 }
 
 impl Spritesheet {
-    fn try_from_bytes(asset_path: &Path, bytes: Vec<u8>) -> Result<Spritesheet> {
+    fn try_from_bytes(_asset_path: &Path, bytes: Vec<u8>) -> Result<Spritesheet> {
         let desc: aseprite::Desc = serde_json::from_slice(&bytes[..]).unwrap();
 
         println!("desc: {:?}", desc);

@@ -3,9 +3,7 @@ use crate::camera::CameraTarget;
 use crate::spritesheet::{Spritesheet, SpritesheetAnimation};
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
-use bevy::utils::tracing::Span;
 use bevy_rapier2d::prelude::*;
-use rand::Rng;
 
 // tunables
 const LINEAR_DAMPING: f32 = 0.7;
@@ -21,7 +19,7 @@ const JUMP_IMPULSE: f32 = 4.0;
 
 const JUMP_IMPULSE_BALL: f32 = 4.0;
 
-const ROT_IMPULSE: f32 = 0.00005;
+const _ROT_IMPULSE: f32 = 0.00005;
 
 const JUMP_TIMEOUT: f32 = 0.3;
 const LETHAL_VELOCITY: f32 = -150.0;
@@ -31,7 +29,7 @@ const WALKING: bool = true;
 const MAX_WALK_VEL: f32 = 90.0;
 
 const FERRIS_Z: f32 = 1.0;
-const BUBBLE_Z: f32 = 1.0;
+const BUBBLE_Z: f32 = 2.0;
 
 #[derive(Component, Default, Clone)]
 pub struct FerrisSpawnpoint;
@@ -217,7 +215,7 @@ fn spawn_ferris_system(
                 commands
                     .spawn_bundle(SpriteBundle {
                         texture: my_assets.bubble.clone(),
-                        transform: Transform::from_translation(event.pos.xy().extend(FERRIS_Z)),
+                        transform: Transform::from_translation(event.pos.xy().extend(BUBBLE_Z)),
                         ..default()
                     })
                     .insert(Bubble {
@@ -352,7 +350,7 @@ fn ground_trace_system(
     }
 }
 
-fn adjust_friction_system(mut query: Query<(&mut Friction, &GroundState)>) {
+fn _adjust_friction_system(mut query: Query<(&mut Friction, &GroundState)>) {
     for (mut friction, ground_state) in &mut query {
         friction.coefficient = if ground_state.on_ground { 3.0 } else { 0.0 };
     }
@@ -462,11 +460,11 @@ fn death_system(
 fn bubble_wobble_system(
     time: Res<Time>,
     mut bubble_query: Query<(&mut Bubble, &mut Transform)>,
-    ferris_query: Query<(&Transform, &GroundState), (With<PlayerInputTarget>, Without<Bubble>)>,
+    ferris_query: Query<&GroundState, (With<PlayerInputTarget>, Without<Bubble>)>,
 ) {
     if let Ok((mut bubble, mut bubble_transform)) = bubble_query.get_single_mut() {
         bubble.wobble_timer.tick(time.delta());
-        if let Ok((ferris, ground_state)) = ferris_query.get_single() {
+        if let Ok(ground_state) = ferris_query.get_single() {
             if ground_state.wobble {
                 bubble.wobble_timer.reset();
             }
