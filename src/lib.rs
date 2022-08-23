@@ -10,15 +10,16 @@ pub mod spritesheet;
 
 pub mod debug_ui;
 
-pub mod menu;
 pub mod assets;
 pub mod collision;
+pub mod menu;
 pub mod world;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub enum GameState {
     AssetLoading,
     Menu,
+    StartLevel,
     InGame,
 }
 

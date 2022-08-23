@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::LevelSelection;
 
 use crate::{
-    ferris::{FerrisSpawnpoint, SpawnFerrisEvent, SpawnFerrisType},
+    ferris::{Bubble, FerrisSpawnpoint, SpawnFerrisEvent, SpawnFerrisType},
     GameState,
 };
 
@@ -33,9 +33,10 @@ fn menu_update_system(input: Res<Input<KeyCode>>, mut state: ResMut<State<GameSt
     }
 }
 
-fn start_game_system(
+fn cleanu_menu_system(
     mut level_selection: ResMut<LevelSelection>,
-    mut camera_query: Query<&mut Transform, (With<Camera2d>, Without<FerrisSpawnpoint>)>,
+    mut camera_query: Query<&mut Transform, With<Camera2d>>,
+    // despawn_query: Query<Entity, Or<(With<Bubble>, With<crate::ferris::PlayerInputTarget>)>>,
 ) {
     *level_selection = LevelSelection::Index(0);
 
@@ -50,6 +51,7 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(SystemSet::on_enter(GameState::Menu).with_system(setup_menu_system));
         app.add_system_set(SystemSet::on_update(GameState::Menu).with_system(menu_update_system));
-        app.add_system_set(SystemSet::on_enter(GameState::InGame).with_system(start_game_system));
+        app.add_system_set(SystemSet::on_exit(GameState::Menu).with_system(cleanu_menu_system));
+        // app.add_system_set(SystemSet::on_enter(GameState::InGame).with_system(start_game_system));
     }
 }

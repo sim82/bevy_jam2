@@ -4,6 +4,7 @@ use crate::spritesheet::{Spritesheet, SpritesheetAnimation};
 use crate::GameState;
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
+use bevy_ecs_ldtk::EntityInstance;
 use bevy_rapier2d::prelude::*;
 
 // tunables
@@ -87,12 +88,12 @@ pub struct SpawnFerrisEvent {
 }
 
 fn spawn_ferris_at_spawnpoint(
-    spawnpoint_query: Query<&Transform, With<FerrisSpawnpoint>>,
+    spawnpoint_query: Query<&Transform, Added<FerrisSpawnpoint>>,
     // ferris_query: Query<&PlayerInputTarget>,
     mut event_writer: EventWriter<SpawnFerrisEvent>,
 ) {
-    info!("spawn ferris");
     if !spawnpoint_query.is_empty() {
+        info!("spawn ferris >>>>>>>>>>>>>>>");
         let pos = spawnpoint_query.iter().next().unwrap().translation;
         event_writer.send(SpawnFerrisEvent {
             pos,
@@ -125,6 +126,7 @@ fn spawn_ferris_system(
     for event in event_reader.iter() {
         if event.despawn {
             for entity in &despawn_query {
+                info!("despawn");
                 commands.entity(entity).despawn_recursive();
             }
         }
@@ -535,7 +537,7 @@ impl Plugin for FerrisPlugin {
                 .with_system(death_system.after(adjust_animation_system)),
         );
         app.add_system_set(
-            SystemSet::on_enter(GameState::InGame).with_system(spawn_ferris_at_spawnpoint),
+            SystemSet::on_update(GameState::InGame).with_system(spawn_ferris_at_spawnpoint),
         );
 
         app.add_system(bubble_wobble_system)
