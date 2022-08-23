@@ -9,13 +9,18 @@ use bevy::{
 use bevy_ecs_tilemap::prelude::*;
 use bevy_rapier2d::{prelude::*, rapier::prelude::IntegrationParameters};
 
+#[derive(Component)]
+struct ColliderRoot;
+
 fn spawn_wall_collider_system(
     mut commands: Commands,
     query: Query<(Entity, &Transform), Added<Wall>>,
+    root_query: Query<Entity, With<ColliderRoot>>,
 ) {
     if query.is_empty() {
         return;
     }
+
     let tile_size = Vec2::new(16.0, 16.0);
     let tile_halfsize = tile_size / 2.0;
 
@@ -55,6 +60,7 @@ fn spawn_wall_collider_system(
         }
     }
 
+    let mut collider_entities = Vec::new();
     // find contiguous 'stacks' of row runs (i.e. merge vertically)
     for (h_run, mut y) in by_run {
         y.sort();
@@ -69,16 +75,29 @@ fn spawn_wall_collider_system(
             let mid = (p0 + p1) / 2.0;
             let halfsize = (p1 - p0) / 2.0;
             info!("{:?} {:?}", mid, halfsize);
-            commands
+            let entity = commands
                 .spawn()
                 .insert_bundle(SpatialBundle {
                     transform: Transform::from_translation(mid.extend(0.0)),
                     ..default()
                 })
                 .insert(RigidBody::Fixed)
-                .insert(Collider::cuboid(halfsize.x, halfsize.y));
+                .insert(Collider::cuboid(halfsize.x, halfsize.y))
+                .id();
+            collider_entities.push(entity);
         }
     }
+
+    let root = root_query.get_single().unwrap_or_else(|_| {
+        commands
+            .spawn_bundle(SpatialBundle::default())
+            .insert(Name::new("colliders"))
+            .id()
+    });
+
+    commands
+        .entity(root)
+        .insert_children(0, &collider_entities[..]);
 }
 
 pub struct CollisionPlugin;
