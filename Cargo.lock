@@ -1724,6 +1724,7 @@ dependencies = [
  "bevy_ecs_ldtk",
  "bevy_ecs_ldtk_macros",
  "bevy_ecs_tilemap",
+ "bevy_egui",
  "bevy_rapier2d",
  "rand",
  "serde",

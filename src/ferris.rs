@@ -458,7 +458,8 @@ fn death_system(
     }
 }
 
-fn track_bubble_system(
+#[allow(clippy::type_complexity)]
+fn bubble_wobble_system(
     time: Res<Time>,
     mut bubble_query: Query<(&mut Bubble, &mut Transform)>,
     ferris_query: Query<(&Transform, &GroundState), (With<PlayerInputTarget>, Without<Bubble>)>,
@@ -466,12 +467,6 @@ fn track_bubble_system(
     if let Ok((mut bubble, mut bubble_transform)) = bubble_query.get_single_mut() {
         bubble.wobble_timer.tick(time.delta());
         if let Ok((ferris, ground_state)) = ferris_query.get_single() {
-            // bubble_transform.translation = ferris.translation.xy().extend(BUBBLE_Z) /*+ Vec3::Z * 0.1*/;
-            // info!(
-            //     "pos: {:?} {:?}",
-            //     bubble_transform.translation, ferris.translation
-            // );
-
             if ground_state.wobble {
                 bubble.wobble_timer.reset();
             }
@@ -540,7 +535,7 @@ impl Plugin for FerrisPlugin {
                 .with_system(adjust_animation_system)
                 .with_system(death_system.after(adjust_animation_system)),
         );
-        app.add_system_to_stage(CoreStage::Last, track_bubble_system);
+        app.add_system_to_stage(CoreStage::Last, bubble_wobble_system);
         app.add_event::<SpawnFerrisEvent>();
     }
 }

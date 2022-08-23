@@ -6,20 +6,53 @@ use bevy::{
     prelude::*,
     utils::{HashMap, HashSet},
 };
+use bevy_ecs_ldtk::LevelSelection;
 use bevy_ecs_tilemap::prelude::*;
 use bevy_rapier2d::{prelude::*, rapier::prelude::IntegrationParameters};
 
 #[derive(Component)]
-struct ColliderRoot;
+struct ColliderRoot {
+    level: LevelSelection,
+}
 
 fn spawn_wall_collider_system(
     mut commands: Commands,
     query: Query<(Entity, &Transform), Added<Wall>>,
-    root_query: Query<Entity, With<ColliderRoot>>,
+    root_query: Query<(Entity, &mut ColliderRoot)>,
+    level_selection: Res<LevelSelection>,
 ) {
     if query.is_empty() {
         return;
     }
+
+    // let (root, mut rootx) = root_query.get_single_mut().unwrap_or_else(|_| {
+    //     commands
+    //         .spawn_bundle(SpatialBundle::default())
+    //         .insert(Name::new("colliders"))
+    //         .id()
+    // });
+
+    let root = if let Ok((root_entity, collider_root)) = root_query.get_single() {
+        if collider_root.level != *level_selection {
+            info!("level changed");
+            commands.entity(root_entity).despawn_recursive();
+            None
+        } else {
+            Some(root_entity)
+        }
+    } else {
+        None
+    };
+
+    let root = root.unwrap_or_else(|| {
+        commands
+            .spawn_bundle(SpatialBundle::default())
+            .insert(Name::new("colliders"))
+            .insert(ColliderRoot {
+                level: level_selection.clone(),
+            })
+            .id()
+    });
 
     let tile_size = Vec2::new(16.0, 16.0);
     let tile_halfsize = tile_size / 2.0;
@@ -87,13 +120,6 @@ fn spawn_wall_collider_system(
             collider_entities.push(entity);
         }
     }
-
-    let root = root_query.get_single().unwrap_or_else(|_| {
-        commands
-            .spawn_bundle(SpatialBundle::default())
-            .insert(Name::new("colliders"))
-            .id()
-    });
 
     commands
         .entity(root)

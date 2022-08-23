@@ -20,7 +20,7 @@ fn main() {
         })
         .add_plugins(DefaultPlugins)
         .add_plugin(LdtkPlugin)
-        .insert_resource(LevelSelection::Index(1))
+        .insert_resource(LevelSelection::Index(2))
         .add_startup_system(setup_system);
 
     app.add_plugins(MyPlugins);
@@ -42,7 +42,8 @@ fn main() {
 
 fn setup_system(mut commands: Commands) {
     let mut bundle = Camera2dBundle::default();
-    bundle.transform.scale = Vec3::new(0.25, 0.25, 1.0);
+    bundle.transform.scale = Vec3::new(0.4, 0.4, 1.0);
+    // bundle.transform.scale = Vec3::new(0.25, 0.25, 1.0);
     commands.spawn_bundle(bundle);
 }
 
