@@ -7,7 +7,7 @@ edition = "2021"
 
 [features]
 inspector = ["bevy-inspector-egui"]
-default = ["inspector"]
+# default = ["inspector"]
 
 [dependencies]
 anyhow = "1"

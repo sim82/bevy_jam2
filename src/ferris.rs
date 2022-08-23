@@ -3,6 +3,7 @@ use crate::camera::CameraTarget;
 use crate::spritesheet::{Spritesheet, SpritesheetAnimation};
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
+use bevy::utils::tracing::Span;
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
 
@@ -29,6 +30,9 @@ const WALKING: bool = true;
 
 const MAX_WALK_VEL: f32 = 90.0;
 
+const FERRIS_Z: f32 = 1.0;
+const BUBBLE_Z: f32 = 1.0;
+
 #[derive(Component, Default, Clone)]
 pub struct FerrisSpawnpoint;
 
@@ -41,7 +45,10 @@ pub struct GroundState {
     jump_timer: Timer,
     dead: bool,
     terminal_velocity: bool,
+
+    // FIXME: this stuff does not belong in ground-state
     wobble: bool,
+    in_bubble: bool,
 }
 
 #[derive(Component)]
@@ -57,18 +64,54 @@ impl Default for GroundState {
             dead: false,
             terminal_velocity: false,
             wobble: false,
+            in_bubble: false,
         }
     }
 }
 
+impl GroundState {
+    fn with_bubble(mut self) -> Self {
+        self.in_bubble = true;
+        self
+    }
+}
+
+enum SpawnFerrisType {
+    Walking,
+    Bubble,
+}
+
+fn spawn_ferris_at_spawnpoint(
+    spawnpoint_query: Query<&Transform, With<FerrisSpawnpoint>>,
+    ferris_query: Query<&PlayerInputTarget>,
+    mut event_writer: EventWriter<SpawnFerrisEvent>,
+) {
+    if ferris_query.is_empty() && !spawnpoint_query.is_empty() {
+        let pos = spawnpoint_query.iter().next().unwrap().translation;
+        event_writer.send(SpawnFerrisEvent {
+            pos,
+            t: SpawnFerrisType::Bubble,
+            despawn: true,
+        });
+    }
+}
+
+struct SpawnFerrisEvent {
+    t: SpawnFerrisType,
+    pos: Vec3,
+    despawn: bool,
+}
+
+#[allow(clippy::type_complexity)]
 fn spawn_ferris_system(
     mut commands: Commands,
     my_assets: Option<Res<MyAssets>>,
     spritesheets: Res<Assets<Spritesheet>>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-    added_query: Query<(Entity, &Transform), Added<FerrisSpawnpoint>>,
+    mut event_reader: EventReader<SpawnFerrisEvent>,
+    despawn_query: Query<Entity, Or<(With<Bubble>, With<PlayerInputTarget>)>>,
 ) {
-    if added_query.is_empty() {
+    if event_reader.is_empty() {
         return;
     }
     let my_assets = if let Some(my_assets) = my_assets {
@@ -77,17 +120,23 @@ fn spawn_ferris_system(
         return;
     };
 
-    let spritesheet = spritesheets.get(&my_assets.ferris_spritesheet).unwrap();
-    info!("spritesheet: {:?}", spritesheet);
-    let num_frames = spritesheet.durations.len();
-    let texture_atlas = texture_atlases.add(TextureAtlas::from_grid(
-        my_assets.ferris_atlas.clone(),
-        Vec2::splat(16.0),
-        num_frames,
-        1,
-    ));
+    for event in event_reader.iter() {
+        if event.despawn {
+            for entity in &despawn_query {
+                commands.entity(entity).despawn_recursive();
+            }
+        }
 
-    for (entity, transform) in &added_query {
+        let spritesheet = spritesheets.get(&my_assets.ferris_spritesheet).unwrap();
+        info!("spritesheet: {:?}", spritesheet);
+        let num_frames = spritesheet.durations.len();
+        let texture_atlas = texture_atlases.add(TextureAtlas::from_grid(
+            my_assets.ferris_atlas.clone(),
+            Vec2::splat(16.0),
+            num_frames,
+            1,
+        ));
+
         let mut animation = SpritesheetAnimation::new(my_assets.ferris_spritesheet.clone());
         animation.start_animation("walk left", true);
 
@@ -97,9 +146,10 @@ fn spawn_ferris_system(
                 ..default()
             },
             texture_atlas: texture_atlas.clone(),
-            transform: *transform,
+            transform: Transform::from_translation(event.pos.xy().extend(FERRIS_Z)),
             ..default()
         });
+
         entity_commands
             .insert(animation)
             .insert(RigidBody::Dynamic)
@@ -109,60 +159,74 @@ fn spawn_ferris_system(
             .insert(PlayerInputTarget)
             .insert(CameraTarget)
             .insert(Ccd { enabled: true })
-            .insert(GroundState::default())
             .insert(Velocity::default());
 
-        if WALKING {
-            entity_commands
-                .insert(LockedAxes::ROTATION_LOCKED)
-                .insert(
-                    Collider::convex_hull(&[
-                        Vec2::new(5.0, -5.0),
-                        Vec2::new(-5.0, -5.0),
-                        Vec2::new(-7.0, 3.0),
-                        Vec2::new(0.0, 8.0),
-                        Vec2::new(7.0, 3.0),
-                    ])
-                    .unwrap(),
-                )
-                .insert(Restitution {
-                    coefficient: RESTITUTION,
-                    ..default()
-                })
-                .insert(Damping {
-                    linear_damping: LINEAR_DAMPING,
-                    ..default()
-                })
-                .insert(Friction {
-                    coefficient: FRICTION,
-                    ..default()
-                });
-        } else {
-            entity_commands
-                .insert(Collider::ball(14.0))
-                .insert(Restitution {
-                    coefficient: BALL_RESTITUTION,
-                    ..default()
-                })
-                .insert(Friction {
-                    coefficient: BALL_FRICTION,
-                    ..default()
-                })
-                .insert(Damping {
-                    linear_damping: BALL_LINEAR_DAMPING,
-                    angular_damping: 1.0,
-                    // ..default()
-                })
-                .insert(ColliderMassProperties::Density(0.3));
+        match event.t {
+            SpawnFerrisType::Walking => {
+                entity_commands
+                    .insert(LockedAxes::ROTATION_LOCKED)
+                    .insert(
+                        Collider::convex_hull(&[
+                            Vec2::new(5.0, -5.0),
+                            Vec2::new(-5.0, -5.0),
+                            Vec2::new(-7.0, 3.0),
+                            Vec2::new(0.0, 8.0),
+                            Vec2::new(7.0, 3.0),
+                        ])
+                        .unwrap(),
+                    )
+                    .insert(Restitution {
+                        coefficient: RESTITUTION,
+                        ..default()
+                    })
+                    .insert(Damping {
+                        linear_damping: LINEAR_DAMPING,
+                        ..default()
+                    })
+                    .insert(Friction {
+                        coefficient: FRICTION,
+                        ..default()
+                    })
+                    .insert(GroundState::default());
+            }
+            SpawnFerrisType::Bubble => {
+                let ferris_entity = entity_commands
+                    .insert(Collider::ball(14.0))
+                    .insert(Restitution {
+                        coefficient: BALL_RESTITUTION,
+                        ..default()
+                    })
+                    .insert(Friction {
+                        coefficient: BALL_FRICTION,
+                        ..default()
+                    })
+                    .insert(Damping {
+                        linear_damping: BALL_LINEAR_DAMPING,
+                        angular_damping: 1.0,
+                        // ..default()
+                    })
+                    .insert(ColliderMassProperties::Density(0.3))
+                    .insert(GroundState::default().with_bubble())
+                    .insert(GravityScale(0.5))
+                    .id();
 
-            commands
-                .spawn_bundle(SpriteBundle {
-                    texture: my_assets.bubble.clone(),
-                    ..default()
-                })
-                .insert(Bubble {
-                    wobble_timer: Timer::from_seconds(3.0, false),
-                });
+                let joint = RevoluteJointBuilder::new()
+                    .local_anchor1(Vec2::new(0.0, 0.0))
+                    .local_anchor2(Vec2::new(0.0, 0.0));
+
+                commands
+                    .spawn_bundle(SpriteBundle {
+                        texture: my_assets.bubble.clone(),
+                        transform: Transform::from_translation(event.pos.xy().extend(FERRIS_Z)),
+                        ..default()
+                    })
+                    .insert(Bubble {
+                        wobble_timer: Timer::from_seconds(3.0, false),
+                    })
+                    .insert(RigidBody::Dynamic)
+                    .insert(AdditionalMassProperties::Mass(0.0001))
+                    .insert(ImpulseJoint::new(ferris_entity, joint));
+            }
         }
     }
 }
@@ -170,9 +234,18 @@ fn spawn_ferris_system(
 fn player_input_system(
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
-    mut query: Query<(&mut ExternalImpulse, &mut GroundState, &Velocity), With<PlayerInputTarget>>,
+    mut query: Query<
+        (
+            &mut ExternalImpulse,
+            &mut GroundState,
+            &Velocity,
+            &Transform,
+        ),
+        With<PlayerInputTarget>,
+    >,
+    mut event_writer: EventWriter<SpawnFerrisEvent>,
 ) {
-    for (mut external_impulse, mut ground_state, velocity) in &mut query {
+    for (mut external_impulse, mut ground_state, velocity, transform) in &mut query {
         ground_state.jump_timer.tick(time.delta());
 
         // info!("velocity: {:?}", velocity);
@@ -180,7 +253,7 @@ fn player_input_system(
         let mut impulse_h = 0.0;
         let mut impulse_v = 0.0;
 
-        let mut rot_impulse = 0.0;
+        // let mut rot_impulse = 0.0;
 
         let jump_impulse = if WALKING {
             JUMP_IMPULSE
@@ -188,31 +261,45 @@ fn player_input_system(
             JUMP_IMPULSE_BALL
         };
 
-        if WALKING {
-            let walk_impulse = if ground_state.on_ground {
-                WALK_IMPULSE_GROUND
-            } else {
-                WALK_IMPULSE_AIR
-            };
-
-            if input.pressed(KeyCode::A) {
-                impulse_h -= walk_impulse;
-            }
-            if input.pressed(KeyCode::D) {
-                impulse_h += walk_impulse;
-            }
+        // if WALKING {
+        let walk_impulse = if ground_state.on_ground {
+            WALK_IMPULSE_GROUND
         } else {
-            if input.pressed(KeyCode::A) {
-                impulse_h -= WALK_IMPULSE_AIR;
-                rot_impulse += ROT_IMPULSE;
-            }
-            if input.pressed(KeyCode::D) {
-                impulse_h += WALK_IMPULSE_AIR;
+            WALK_IMPULSE_AIR
+        };
 
-                rot_impulse -= ROT_IMPULSE;
-            }
+        if input.pressed(KeyCode::A) {
+            impulse_h -= walk_impulse;
         }
-        if (ground_state.on_ground || !WALKING)
+        if input.pressed(KeyCode::D) {
+            impulse_h += walk_impulse;
+        }
+        // } else {
+        //     if input.pressed(KeyCode::A) {
+        //         impulse_h -= WALK_IMPULSE_AIR;
+        //         rot_impulse += ROT_IMPULSE;
+        //     }
+        //     if input.pressed(KeyCode::D) {
+        //         impulse_h += WALK_IMPULSE_AIR;
+
+        //         rot_impulse -= ROT_IMPULSE;
+        //     }
+        // }
+        if ground_state.in_bubble && input.just_pressed(KeyCode::P) {
+            event_writer.send(SpawnFerrisEvent {
+                t: SpawnFerrisType::Walking,
+                pos: transform.translation,
+                despawn: true,
+            })
+        } else if !ground_state.in_bubble && input.just_pressed(KeyCode::P) {
+            event_writer.send(SpawnFerrisEvent {
+                t: SpawnFerrisType::Bubble,
+                pos: transform.translation,
+                despawn: true,
+            })
+        }
+
+        if (ground_state.on_ground || ground_state.in_bubble)
             && ground_state.jump_timer.finished()
             && input.pressed(KeyCode::Space)
         {
@@ -229,7 +316,7 @@ fn player_input_system(
 
         external_impulse.impulse.x = impulse_h;
         external_impulse.impulse.y = impulse_v;
-        external_impulse.torque_impulse = rot_impulse;
+        // external_impulse.torque_impulse = rot_impulse;
     }
 }
 
@@ -238,7 +325,7 @@ fn ground_trace_system(
     mut query: Query<(&mut GroundState, &Transform, &Collider, &Velocity)>,
 ) {
     for (mut ground_state, transform, collider, velocity) in &mut query {
-        let collider = if WALKING {
+        let collider = if !ground_state.in_bubble {
             Collider::cuboid(5.0, 6.0)
         } else {
             collider.clone()
@@ -258,7 +345,10 @@ fn ground_trace_system(
             ground_state.dead = true;
         }
 
-        ground_state.wobble = ground_state.on_ground && velocity.linvel.y < -30.0;
+        ground_state.wobble = ground_state.on_ground && velocity.linvel.y < -20.0;
+        if ground_state.wobble {
+            info!("wobble");
+        }
     }
 }
 
@@ -281,7 +371,7 @@ fn adjust_animation_system(
     >,
 ) {
     for (ground_state, velocity, mut animation, transform) in &mut query {
-        if WALKING {
+        if !ground_state.in_bubble {
             let walking = velocity.linvel.x.abs() > 0.2;
             let vel_right = velocity.linvel.x >= 0.0;
 
@@ -376,7 +466,12 @@ fn track_bubble_system(
     if let Ok((mut bubble, mut bubble_transform)) = bubble_query.get_single_mut() {
         bubble.wobble_timer.tick(time.delta());
         if let Ok((ferris, ground_state)) = ferris_query.get_single() {
-            bubble_transform.translation = ferris.translation;
+            // bubble_transform.translation = ferris.translation.xy().extend(BUBBLE_Z) /*+ Vec3::Z * 0.1*/;
+            // info!(
+            //     "pos: {:?} {:?}",
+            //     bubble_transform.translation, ferris.translation
+            // );
+
             if ground_state.wobble {
                 bubble.wobble_timer.reset();
             }
@@ -441,9 +536,11 @@ impl Plugin for FerrisPlugin {
                 .label(system_labels::Other)
                 .after(system_labels::Input)
                 .with_system(spawn_ferris_system)
+                .with_system(spawn_ferris_at_spawnpoint)
                 .with_system(adjust_animation_system)
                 .with_system(death_system.after(adjust_animation_system)),
         );
         app.add_system_to_stage(CoreStage::Last, track_bubble_system);
+        app.add_event::<SpawnFerrisEvent>();
     }
 }
