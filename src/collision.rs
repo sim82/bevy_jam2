@@ -3,7 +3,7 @@ use std::ops::Range;
 use crate::world::Wall;
 use bevy::{math::Vec3Swizzles, prelude::*, utils::HashMap};
 use bevy_ecs_ldtk::LevelSelection;
-use bevy_rapier2d::prelude::*;
+use bevy_rapier2d::{prelude::*, rapier::prelude::DebugRenderPipeline};
 
 #[derive(Component)]
 struct ColliderRoot {
@@ -129,11 +129,18 @@ impl Plugin for CollisionPlugin {
             .insert_resource(RapierConfiguration {
                 gravity: Vec2::Y * -9.81 * 20.0,
                 ..default()
-            })
-        // .add_plugin(RapierDebugRenderPlugin {
+            });
+
+        #[cfg(feature = "debug_ui")]
+        app.add_plugin(RapierDebugRenderPlugin::default())
+            .insert_resource(DebugRenderContext {
+                enabled: false,
+                pipeline: DebugRenderPipeline::new(default(), DebugRenderMode::all()),
+            });
+
+        // {
         //     mode: DebugRenderMode::all(),
         //     ..default()
         // })
-        ;
     }
 }

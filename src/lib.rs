@@ -9,28 +9,18 @@ pub mod ferris;
 pub mod spritesheet;
 
 pub mod debug_ui;
-pub mod assets {
-    use crate::spritesheet::Spritesheet;
-    use bevy::prelude::*;
-    use bevy_asset_loader::prelude::*;
-    use bevy_ecs_ldtk::prelude::*;
-    #[derive(AssetCollection)]
-    pub struct MyAssets {
-        #[asset(path = "world.ldtk")]
-        pub world: Handle<LdtkAsset>,
 
-        #[asset(path = "ferris2.0.json")]
-        pub ferris_spritesheet: Handle<Spritesheet>,
-
-        #[asset(path = "ferris2.0.png")]
-        pub ferris_atlas: Handle<Image>,
-
-        #[asset(path = "bubble.png")]
-        pub bubble: Handle<Image>,
-    }
-}
+pub mod menu;
+pub mod assets;
 pub mod collision;
 pub mod world;
+
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+pub enum GameState {
+    AssetLoading,
+    Menu,
+    InGame,
+}
 
 #[derive(Component)]
 #[component(storage = "SparseSet")]
@@ -121,7 +111,8 @@ impl PluginGroup for MyPlugins {
             .add(collision::CollisionPlugin)
             .add(ferris::FerrisPlugin)
             .add(camera::CameraPlugin)
-            .add(MiscPlugin);
+            .add(MiscPlugin)
+            .add(menu::MenuPlugin);
 
         #[cfg(feature = "debug_ui")]
         group.add(debug_ui::DebugUiPlugin);

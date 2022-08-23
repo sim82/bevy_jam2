@@ -1,6 +1,7 @@
 use crate::assets::MyAssets;
 use crate::camera::CameraTarget;
 use crate::spritesheet::{Spritesheet, SpritesheetAnimation};
+use crate::GameState;
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
@@ -74,17 +75,24 @@ impl GroundState {
     }
 }
 
-enum SpawnFerrisType {
+pub enum SpawnFerrisType {
     Walking,
     Bubble,
 }
 
+pub struct SpawnFerrisEvent {
+    pub t: SpawnFerrisType,
+    pub pos: Vec3,
+    pub despawn: bool,
+}
+
 fn spawn_ferris_at_spawnpoint(
     spawnpoint_query: Query<&Transform, With<FerrisSpawnpoint>>,
-    ferris_query: Query<&PlayerInputTarget>,
+    // ferris_query: Query<&PlayerInputTarget>,
     mut event_writer: EventWriter<SpawnFerrisEvent>,
 ) {
-    if ferris_query.is_empty() && !spawnpoint_query.is_empty() {
+    info!("spawn ferris");
+    if !spawnpoint_query.is_empty() {
         let pos = spawnpoint_query.iter().next().unwrap().translation;
         event_writer.send(SpawnFerrisEvent {
             pos,
@@ -92,12 +100,6 @@ fn spawn_ferris_at_spawnpoint(
             despawn: true,
         });
     }
-}
-
-struct SpawnFerrisEvent {
-    t: SpawnFerrisType,
-    pos: Vec3,
-    despawn: bool,
 }
 
 #[allow(clippy::type_complexity)]
@@ -112,6 +114,8 @@ fn spawn_ferris_system(
     if event_reader.is_empty() {
         return;
     }
+    info!("xxxxx");
+
     let my_assets = if let Some(my_assets) = my_assets {
         my_assets
     } else {
@@ -512,28 +516,32 @@ mod system_labels {
 impl Plugin for FerrisPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_system_set(
-            SystemSet::new()
+            SystemSet::on_update(GameState::InGame)
                 .label(system_labels::Ground)
                 .with_system(ground_trace_system),
         );
 
         app.add_system_set(
-            SystemSet::new()
+            SystemSet::on_update(GameState::InGame)
                 .label(system_labels::Input)
                 .after(system_labels::Ground)
                 .with_system(player_input_system), // .with_system(adjust_friction_system),
         );
 
         app.add_system_set(
-            SystemSet::new()
+            SystemSet::on_update(GameState::InGame)
                 .label(system_labels::Other)
                 .after(system_labels::Input)
-                .with_system(spawn_ferris_system)
-                .with_system(spawn_ferris_at_spawnpoint)
-                .with_system(adjust_animation_system)
                 .with_system(death_system.after(adjust_animation_system)),
         );
-        app.add_system_to_stage(CoreStage::Last, bubble_wobble_system);
+        app.add_system_set(
+            SystemSet::on_enter(GameState::InGame).with_system(spawn_ferris_at_spawnpoint),
+        );
+
+        app.add_system(bubble_wobble_system)
+            .add_system(spawn_ferris_system)
+            .add_system(adjust_animation_system);
+
         app.add_event::<SpawnFerrisEvent>();
     }
 }

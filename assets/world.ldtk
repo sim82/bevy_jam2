@@ -2413,25 +2413,11 @@
 							"__tags": [],
 							"__tile": null,
 							"__smartColor": "#94D9B3",
-							"iid": "e64e77f0-02f0-11ed-a788-2fe0b7c8fdef",
+							"iid": "31fc44d0-02f0-11ed-a788-c99c72513edb",
 							"width": 16,
 							"height": 16,
 							"defUid": 57,
 							"px": [176,16],
-							"fieldInstances": []
-						},
-						{
-							"__identifier": "Player",
-							"__grid": [4,4],
-							"__pivot": [0,0],
-							"__tags": [],
-							"__tile": null,
-							"__smartColor": "#94D9B3",
-							"iid": "0f621020-02f0-11ed-a788-bbdddafbce58",
-							"width": 16,
-							"height": 16,
-							"defUid": 57,
-							"px": [64,64],
 							"fieldInstances": []
 						}
 					]

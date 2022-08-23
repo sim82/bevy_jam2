@@ -1,10 +1,12 @@
 use bevy::{asset::AssetServerSettings, prelude::*, render::texture::ImageSettings};
 use bevy_asset_loader::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
-use game3::{assets::MyAssets, MyPlugins};
+use game3::{assets::MyAssets, GameState, MyPlugins};
 
 fn main() {
     let mut app = App::new();
+    app.add_state(GameState::AssetLoading);
+
     app.insert_resource(ImageSettings::default_nearest())
         .insert_resource(AssetServerSettings {
             watch_for_changes: true,
@@ -19,11 +21,10 @@ fn main() {
 
     app.add_loading_state(
         LoadingState::new(GameState::AssetLoading)
-            .continue_to_state(GameState::Next)
+            .continue_to_state(GameState::Menu)
             .with_collection::<MyAssets>(),
     )
-    .add_state(GameState::AssetLoading)
-    .add_system_set(SystemSet::on_enter(GameState::Next).with_system(use_my_assets));
+    .add_system_set(SystemSet::on_enter(GameState::Menu).with_system(use_my_assets));
 
     #[cfg(feature = "inspector")]
     app.add_plugin(bevy_inspector_egui::WorldInspectorPlugin::default());
@@ -34,8 +35,8 @@ fn main() {
 
 fn setup_system(mut commands: Commands) {
     let mut bundle = Camera2dBundle::default();
-    bundle.transform.scale = Vec3::new(0.4, 0.4, 1.0);
-    // bundle.transform.scale = Vec3::new(0.25, 0.25, 1.0);
+    // bundle.transform.scale = Vec3::new(0.4, 0.4, 1.0);
+    bundle.transform.scale = Vec3::new(0.25, 0.25, 1.0);
     commands.spawn_bundle(bundle);
 }
 
@@ -72,10 +73,4 @@ fn use_my_assets(mut commands: Commands, my_assets: Res<MyAssets>) {
     //     .insert(animation);
 
     // commands.spawn().insert(game3::ferris::Ferris);
-}
-
-#[derive(Clone, Eq, PartialEq, Debug, Hash)]
-enum GameState {
-    AssetLoading,
-    Next,
 }
