@@ -8,6 +8,7 @@ pub mod camera;
 pub mod ferris;
 pub mod spritesheet;
 
+#[cfg(feature = "debug_ui")]
 pub mod debug_ui;
 
 pub mod assets;

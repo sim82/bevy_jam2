@@ -8,12 +8,14 @@ edition = "2021"
 [features]
 inspector = ["bevy-inspector-egui"]
 debug_ui = ["bevy_egui"]
-default = ["debug_ui"]
+#default = ["debug_ui"]
 
 [dependencies]
 anyhow = "1"
-bevy = { version = "0.8", features = ["dynamic"] }
-bevy_ecs_ldtk = "0.4"
+#bevy = { version = "0.8", features = ["dynamic"] }
+bevy = { version = "0.8" }
+
+bevy_ecs_ldtk = { version = "0.4", features = ["atlas"] }
 bevy_ecs_ldtk_macros = "0.4"
 bevy_ecs_tilemap = "0.7"
 bevy_asset_loader = "0.12"
