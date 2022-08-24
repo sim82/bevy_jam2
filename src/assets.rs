@@ -13,6 +13,12 @@ pub struct MyAssets {
     #[asset(path = "ferris2.0.png")]
     pub ferris_atlas: Handle<Image>,
 
+    #[asset(path = "bubble.json")]
+    pub bubble_spritesheet: Handle<Spritesheet>,
+
     #[asset(path = "bubble.png")]
     pub bubble: Handle<Image>,
+
+    #[asset(path = "bubble_single.png")]
+    pub bubble_single: Handle<Image>,
 }

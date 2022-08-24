@@ -1,7 +1,7 @@
 use crate::assets::MyAssets;
 use crate::camera::CameraTarget;
 use crate::spritesheet::{Spritesheet, SpritesheetAnimation};
-use crate::GameState;
+use crate::{Despawn, GameState};
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use bevy_ecs_ldtk::EntityInstance;
@@ -112,7 +112,8 @@ fn spawn_ferris_system(
     spritesheets: Res<Assets<Spritesheet>>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut event_reader: EventReader<SpawnFerrisEvent>,
-    despawn_query: Query<Entity, Or<(With<Bubble>, With<PlayerInputTarget>)>>,
+    despawn_query: Query<Entity, With<PlayerInputTarget>>,
+    despawn_bubble_query: Query<Entity, With<Bubble>>,
 ) {
     if event_reader.is_empty() {
         return;
@@ -130,6 +131,46 @@ fn spawn_ferris_system(
             for entity in &despawn_query {
                 info!("despawn");
                 commands.entity(entity).despawn_recursive();
+            }
+
+            for entity in &despawn_bubble_query {
+                info!("despawn bubble");
+                commands.entity(entity).despawn_recursive();
+
+                let mut animation = SpritesheetAnimation::new(my_assets.bubble_spritesheet.clone());
+                animation.start_animation("bubble", true);
+
+                let spritesheet = spritesheets.get(&my_assets.bubble_spritesheet).unwrap();
+
+                let num_frames = spritesheet.durations.len();
+                let texture_atlas = texture_atlases.add(TextureAtlas::from_grid(
+                    my_assets.bubble.clone(),
+                    Vec2::splat(28.0),
+                    num_frames,
+                    1,
+                ));
+
+                let mut animation = SpritesheetAnimation::new(my_assets.bubble_spritesheet.clone());
+                animation.start_animation("pop", true);
+
+                commands
+                    .spawn_bundle(
+                        SpriteSheetBundle {
+                            sprite: TextureAtlasSprite {
+                                index: 0,
+                                ..default()
+                            },
+                            texture_atlas: texture_atlas.clone(),
+                            transform: Transform::from_translation(event.pos.xy().extend(BUBBLE_Z)),
+                            ..default()
+                        }, //     SpriteBundle {
+                           //     texture: my_assets.bubble.clone(),
+                           //     transform: Transform::from_translation(event.pos.xy().extend(BUBBLE_Z)),
+                           //     ..default()
+                           // }
+                    )
+                    .insert(animation)
+                    .insert(Despawn::TimeToLive(0.5));
             }
         }
 
@@ -222,7 +263,7 @@ fn spawn_ferris_system(
 
                 commands
                     .spawn_bundle(SpriteBundle {
-                        texture: my_assets.bubble.clone(),
+                        texture: my_assets.bubble_single.clone(),
                         transform: Transform::from_translation(event.pos.xy().extend(BUBBLE_Z)),
                         ..default()
                     })
