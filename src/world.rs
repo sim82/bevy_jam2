@@ -91,7 +91,7 @@ pub struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.register_ldtk_int_cell::<WallBundle>(1)
-            .register_ldtk_entity::<PlayerBundle>("Player")
+            // .register_ldtk_entity::<PlayerBundle>("Player")
             .register_ldtk_entity::<ExitBundleLdtk>("Exit")
             .add_system(check_exit_system);
     }
