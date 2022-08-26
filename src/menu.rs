@@ -1,16 +1,12 @@
 use bevy::prelude::*;
 use bevy_ecs_ldtk::LevelSelection;
 
-use crate::{
-    ferris::{Bubble, FerrisSpawnpoint, SpawnFerrisEvent, SpawnFerrisType},
-    GameState,
-};
+use crate::GameState;
 
 fn setup_menu_system(
-    mut commands: Commands,
-    mut event_writer: EventWriter<SpawnFerrisEvent>,
-    spawnpoint_query: Query<&Transform, With<FerrisSpawnpoint>>,
-    mut camera_query: Query<&mut Transform, (With<Camera2d>, Without<FerrisSpawnpoint>)>,
+    // mut commands: Commands,
+    // mut event_writer: EventWriter<SpawnFerrisEvent>,
+    mut camera_query: Query<&mut Transform, With<Camera2d>>,
 ) {
     // if !spawnpoint_query.is_empty() {
     //     info!("send spawn");

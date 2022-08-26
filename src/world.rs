@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 
-use crate::ferris::{FerrisSpawnpoint, PlayerInputTarget};
+use crate::ferris::PlayerInputTarget;
 
 #[derive(Clone, Debug, Default, Bundle, LdtkIntCell)]
 struct WallBundle {
@@ -11,26 +11,26 @@ struct WallBundle {
 #[derive(Component, Default, Clone, Debug)]
 pub struct Wall;
 
-#[derive(Bundle, Clone, Default)]
-pub struct SpawnpointBundle {
-    ferris: FerrisSpawnpoint,
-    transform: Transform,
-}
+// #[derive(Bundle, Clone, Default)]
+// pub struct SpawnpointBundle {
+//     ferris: FerrisSpawnpoint,
+//     transform: Transform,
+// }
 
-impl From<EntityInstance> for SpawnpointBundle {
-    fn from(entity_instance: EntityInstance) -> Self {
-        info!("pivot: {:?}", entity_instance.px);
+// impl From<EntityInstance> for SpawnpointBundle {
+//     fn from(entity_instance: EntityInstance) -> Self {
+//         info!("pivot: {:?}", entity_instance.px);
 
-        SpawnpointBundle {
-            ferris: FerrisSpawnpoint,
-            transform: Transform::from_xyz(
-                entity_instance.px.x as f32,
-                entity_instance.px.y as f32,
-                2.0,
-            ),
-        }
-    }
-}
+//         SpawnpointBundle {
+//             ferris: FerrisSpawnpoint,
+//             transform: Transform::from_xyz(
+//                 entity_instance.px.x as f32,
+//                 entity_instance.px.y as f32,
+//                 2.0,
+//             ),
+//         }
+//     }
+// }
 
 #[derive(Component, Copy, Clone, Default)]
 pub struct ExitDoor;
@@ -56,12 +56,12 @@ impl From<EntityInstance> for ExitBundle {
     }
 }
 
-#[derive(Clone, Default, Bundle, LdtkEntity)]
-pub struct PlayerBundle {
-    #[from_entity_instance]
-    #[bundle]
-    pub spawnpoint_bundle: SpawnpointBundle,
-}
+// #[derive(Clone, Default, Bundle, LdtkEntity)]
+// pub struct PlayerBundle {
+//     #[from_entity_instance]
+//     #[bundle]
+//     pub spawnpoint_bundle: SpawnpointBundle,
+// }
 
 #[derive(Clone, Default, Bundle, LdtkEntity)]
 pub struct ExitBundleLdtk {

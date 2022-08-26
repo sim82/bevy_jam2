@@ -30,7 +30,7 @@ const WALKING: bool = true;
 
 const MAX_WALK_VEL: f32 = 90.0;
 
-const FERRIS_Z: f32 = 1.0;
+// const FERRIS_Z: f32 = 1.0;
 const BUBBLE_Z: f32 = 2.0;
 
 #[derive(Clone, Bundle)]
@@ -135,8 +135,8 @@ pub struct FerrisLdtkBundle {
     pub spawnpoint_bundle: FerrisBundle,
 }
 
-#[derive(Component, Default, Clone)]
-pub struct FerrisSpawnpoint;
+// #[derive(Component, Default, Clone)]
+// pub struct FerrisSpawnpoint;
 
 #[derive(Component, Clone)]
 pub struct PlayerInputTarget;
@@ -178,15 +178,9 @@ impl GroundState {
     }
 }
 
-pub enum SpawnFerrisType {
-    Walking,
-    Bubble,
-}
-
-pub struct SpawnFerrisEvent {
-    pub t: SpawnFerrisType,
-    pub pos: Vec3,
-    pub despawn: bool,
+pub struct FerrisConfigureEvent {
+    entity: Entity,
+    bubble: bool,
 }
 
 #[allow(clippy::type_complexity)]
@@ -196,6 +190,7 @@ fn spawn_ferris_system(
     spritesheets: Res<Assets<Spritesheet>>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     ldtk_added_query: Query<Entity, Added<EntityInstance>>,
+    mut event_writer: EventWriter<FerrisConfigureEvent>,
 ) {
     let my_assets = if let Some(my_assets) = my_assets {
         my_assets
@@ -218,39 +213,37 @@ fn spawn_ferris_system(
         animation.start_animation("walk left", true);
 
         let mut entity_commands = commands.entity(entity);
-        entity_commands
+        let entity = entity_commands
             .insert(TextureAtlasSprite {
                 index: 0,
                 ..default()
             })
-            .insert(texture_atlas.clone());
-
-        entity_commands
+            .insert(texture_atlas.clone())
             .insert(animation)
-            .insert_bundle(FerrisBundle::bubble())
-            .insert(Name::new("ferris"));
+            .insert(Name::new("ferris"))
+            .id();
 
-        let joint = RevoluteJointBuilder::new()
-            .local_anchor1(Vec2::new(0.0, 0.0))
-            .local_anchor2(Vec2::new(0.0, 0.0));
+        event_writer.send(FerrisConfigureEvent {
+            entity,
+            bubble: true,
+        });
+    }
+}
 
-        commands
-            .spawn_bundle(SpriteBundle {
-                texture: my_assets.bubble_single.clone(),
-                transform: Transform::from_translation(Vec3::Z * BUBBLE_Z),
-                ..default()
-            })
-            .insert(Bubble {
-                wobble_timer: Timer::from_seconds(3.0, false),
-            })
-            .insert(RigidBody::Dynamic)
-            .insert(AdditionalMassProperties::Mass(0.0001))
-            .insert(ImpulseJoint::new(entity, joint));
+fn cleanup_bubbles_system(
+    mut commands: Commands,
+    bubble_query: Query<(Entity, &ImpulseJoint), With<Bubble>>,
+    query: Query<Entity, Without<Bubble>>,
+) {
+    for (entity, joint) in &bubble_query {
+        if query.get(joint.parent).is_err() {
+            info!("despawn bubble");
+            commands.entity(entity).despawn();
+        }
     }
 }
 
 fn player_input_system(
-    mut commands: Commands,
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
     mut query: Query<
@@ -263,9 +256,9 @@ fn player_input_system(
         ),
         With<PlayerInputTarget>,
     >,
-    mut event_writer: EventWriter<SpawnFerrisEvent>,
+    mut event_writer: EventWriter<FerrisConfigureEvent>,
 ) {
-    for (entity, mut external_impulse, mut ground_state, velocity, transform) in &mut query {
+    for (entity, mut external_impulse, mut ground_state, velocity, _transform) in &mut query {
         ground_state.jump_timer.tick(time.delta());
 
         // info!("velocity: {:?}", velocity);
@@ -294,37 +287,19 @@ fn player_input_system(
         if input.pressed(KeyCode::D) {
             impulse_h += walk_impulse;
         }
-        // } else {
-        //     if input.pressed(KeyCode::A) {
-        //         impulse_h -= WALK_IMPULSE_AIR;
-        //         rot_impulse += ROT_IMPULSE;
-        //     }
-        //     if input.pressed(KeyCode::D) {
-        //         impulse_h += WALK_IMPULSE_AIR;
-
-        //         rot_impulse -= ROT_IMPULSE;
-        //     }
-        // }
         if ground_state.in_bubble && input.just_pressed(KeyCode::P) {
-            // event_writer.send(SpawnFerrisEvent {
-            //     t: SpawnFerrisType::Walking,
-            //     pos: transform.translation,
-            //     despawn: true,
-            // })
-            commands
-                .entity(entity)
-                .remove_bundle::<FerrisBundle>()
-                .insert_bundle(FerrisBundle::walking());
+            event_writer.send(FerrisConfigureEvent {
+                entity,
+                bubble: false,
+            })
+            // change_to_walking(&mut commands, entity);
         } else if !ground_state.in_bubble && input.just_pressed(KeyCode::P) {
-            // event_writer.send(SpawnFerrisEvent {
-            //     t: SpawnFerrisType::Bubble,
-            //     pos: transform.translation,
-            //     despawn: true,
-            // })
-            commands
-                .entity(entity)
-                .remove_bundle::<FerrisBundle>()
-                .insert_bundle(FerrisBundle::bubble());
+            event_writer.send(FerrisConfigureEvent {
+                entity,
+                bubble: true,
+            })
+
+            // change_to_bubble(&mut commands, entity);
         }
 
         if (ground_state.on_ground || ground_state.in_bubble)
@@ -347,6 +322,108 @@ fn player_input_system(
         // external_impulse.torque_impulse = rot_impulse;
     }
 }
+
+fn reconfigure_ferris_system(
+    mut commands: Commands,
+    mut event_reader: EventReader<FerrisConfigureEvent>,
+    my_assets: Option<Res<MyAssets>>,
+    spritesheets: Res<Assets<Spritesheet>>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    mut query: Query<&mut Transform, Without<Bubble>>,
+    bubble_query: Query<(Entity, &ImpulseJoint, &Transform), With<Bubble>>,
+) {
+    let my_assets = if let Some(my_assets) = my_assets {
+        my_assets
+    } else {
+        return;
+    };
+    for event in event_reader.iter() {
+        for (bubble_entity, joint, bubble_transform) in &bubble_query {
+            if joint.parent == event.entity {
+                commands.entity(bubble_entity).despawn();
+                info!("despawn bubble");
+
+                let mut animation = SpritesheetAnimation::new(my_assets.bubble_spritesheet.clone());
+                animation.start_animation("bubble", true);
+
+                let spritesheet = spritesheets.get(&my_assets.bubble_spritesheet).unwrap();
+
+                let num_frames = spritesheet.durations.len();
+                let texture_atlas = texture_atlases.add(TextureAtlas::from_grid(
+                    my_assets.bubble.clone(),
+                    Vec2::splat(28.0),
+                    num_frames,
+                    1,
+                ));
+
+                let mut animation = SpritesheetAnimation::new(my_assets.bubble_spritesheet.clone());
+                animation.start_animation("pop", true);
+
+                commands
+                    .spawn_bundle(SpriteSheetBundle {
+                        sprite: TextureAtlasSprite {
+                            index: 0,
+                            ..default()
+                        },
+                        texture_atlas: texture_atlas.clone(),
+                        transform: Transform::from_translation(
+                            bubble_transform.translation.xy().extend(BUBBLE_Z),
+                        ),
+                        ..default()
+                    })
+                    .insert(animation)
+                    .insert(Despawn::TimeToLive(0.5));
+            }
+        }
+
+        // reset rotation
+        if let Ok(mut transform) = query.get_mut(event.entity) {
+            transform.rotation = default();
+        }
+        if event.bubble {
+            commands
+                .entity(event.entity)
+                .remove_bundle::<FerrisBundle>()
+                .insert_bundle(FerrisBundle::bubble());
+
+            let joint = RevoluteJointBuilder::new()
+                .local_anchor1(Vec2::new(0.0, 0.0))
+                .local_anchor2(Vec2::new(0.0, 0.0));
+
+            commands
+                .spawn_bundle(SpriteBundle {
+                    texture: my_assets.bubble_single.clone(),
+                    transform: Transform::from_translation(Vec3::Z * BUBBLE_Z),
+                    ..default()
+                })
+                .insert(Bubble {
+                    wobble_timer: Timer::from_seconds(3.0, false),
+                })
+                .insert(RigidBody::Dynamic)
+                .insert(AdditionalMassProperties::Mass(0.0001))
+                .insert(ImpulseJoint::new(event.entity, joint));
+        } else {
+            commands
+                .entity(event.entity)
+                .remove_bundle::<FerrisBundle>()
+                .insert_bundle(FerrisBundle::walking());
+        }
+    }
+}
+
+// fn change_to_bubble(commands: &mut Commands, entity: Entity) {
+//     commands
+//         .entity(entity)
+//         .remove_bundle::<FerrisBundle>()
+//         .insert_bundle(FerrisBundle::bubble());
+// }
+
+// fn change_to_walking(commands: &mut Commands, entity: Entity) {
+//     commands
+//         .entity(entity)
+//         .remove_bundle::<FerrisBundle>()
+//         .insert_bundle(FerrisBundle::walking());
+// }
 
 fn ground_trace_system(
     rapier_context: Res<RapierContext>,
@@ -442,7 +519,7 @@ fn adjust_animation_system(
 
             // let (axis, angle) = transform.rotation.to_axis_angle();
             // info!("angle: {:?} {}", axis, angle);
-            let quat = ((angle / pi_2) as usize).clamp(0, rolls.len());
+            let quat = ((angle / pi_2) as usize).clamp(0, rolls.len() - 1);
             // let name = if (0.0..pi4).contains(&angle) {
             //     "roll0"
             // } else if (pi4..(2.0* pi4)).contains(&angle)
@@ -492,7 +569,7 @@ fn bubble_wobble_system(
     mut bubble_query: Query<(&mut Bubble, &mut Transform)>,
     ferris_query: Query<&GroundState, (With<PlayerInputTarget>, Without<Bubble>)>,
 ) {
-    if let Ok((mut bubble, mut bubble_transform)) = bubble_query.get_single_mut() {
+    for (mut bubble, mut bubble_transform) in &mut bubble_query {
         bubble.wobble_timer.tick(time.delta());
         if let Ok(ground_state) = ferris_query.get_single() {
             if ground_state.wobble {
@@ -560,16 +637,13 @@ impl Plugin for FerrisPlugin {
                 .after(system_labels::Input)
                 .with_system(death_system.after(adjust_animation_system)),
         );
-        // app.add_system_set(SystemSet::on_update(GameState::InGame));
 
         app.add_system(bubble_wobble_system)
             .add_system(spawn_ferris_system)
             .add_system(adjust_animation_system)
-            // .add_system(spawn_ferris_at_spawnpoint)
-            ;
-        // app.add_system_to_stage(CoreStage::First, spawn_ferris_system);
+            .add_system(reconfigure_ferris_system)
+            .add_system(cleanup_bubbles_system);
 
-        app.add_event::<SpawnFerrisEvent>();
-        // app.register_ldtk_entity::<FerrisLdtkBundle>("Player");
+        app.add_event::<FerrisConfigureEvent>();
     }
 }
