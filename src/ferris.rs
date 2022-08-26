@@ -33,6 +33,11 @@ const MAX_WALK_VEL: f32 = 90.0;
 // const FERRIS_Z: f32 = 1.0;
 const BUBBLE_Z: f32 = 2.0;
 
+#[derive(Default, Clone, Component)]
+pub struct Keys {
+    pub key1: bool,
+}
+
 #[derive(Clone, Bundle)]
 pub struct FerrisBundle {
     pub rigid_body: RigidBody,
@@ -49,6 +54,7 @@ pub struct FerrisBundle {
     pub collider_mass_properties: ColliderMassProperties,
     pub ground_state: GroundState,
     pub gravity_scale: GravityScale,
+    pub keys: Keys,
 }
 
 impl Default for FerrisBundle {
@@ -90,6 +96,7 @@ impl FerrisBundle {
             collider_mass_properties: default(),
             ground_state: default(),
             gravity_scale: default(),
+            keys: default(),
         }
     }
 
@@ -118,6 +125,7 @@ impl FerrisBundle {
             collider_mass_properties: ColliderMassProperties::Density(0.3),
             ground_state: GroundState::default().with_bubble(),
             gravity_scale: GravityScale(0.5),
+            keys: default(),
         }
     }
 }
@@ -150,7 +158,7 @@ pub struct GroundState {
 
     // FIXME: this stuff does not belong in ground-state
     wobble: bool,
-    in_bubble: bool,
+    pub in_bubble: bool,
 }
 
 #[derive(Component)]
@@ -179,8 +187,8 @@ impl GroundState {
 }
 
 pub struct FerrisConfigureEvent {
-    entity: Entity,
-    bubble: bool,
+    pub entity: Entity,
+    pub bubble: bool,
 }
 
 #[allow(clippy::type_complexity)]
@@ -189,7 +197,7 @@ fn spawn_ferris_system(
     my_assets: Option<Res<MyAssets>>,
     spritesheets: Res<Assets<Spritesheet>>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-    ldtk_added_query: Query<Entity, Added<EntityInstance>>,
+    ldtk_added_query: Query<(Entity, &EntityInstance), Added<EntityInstance>>,
     mut event_writer: EventWriter<FerrisConfigureEvent>,
 ) {
     let my_assets = if let Some(my_assets) = my_assets {
@@ -198,7 +206,10 @@ fn spawn_ferris_system(
         return;
     };
 
-    for entity in &ldtk_added_query {
+    for (entity, entity_instance) in &ldtk_added_query {
+        if entity_instance.identifier != "Player" {
+            continue;
+        }
         let spritesheet = spritesheets.get(&my_assets.ferris_spritesheet).unwrap();
         info!("spritesheet: {:?}", spritesheet);
         let num_frames = spritesheet.durations.len();
@@ -225,7 +236,7 @@ fn spawn_ferris_system(
 
         event_writer.send(FerrisConfigureEvent {
             entity,
-            bubble: true,
+            bubble: false,
         });
     }
 }
@@ -235,6 +246,7 @@ fn cleanup_bubbles_system(
     bubble_query: Query<(Entity, &ImpulseJoint), With<Bubble>>,
     query: Query<Entity, Without<Bubble>>,
 ) {
+    // polling this constantly is crap. probably should use state transitions for clean level transitions
     for (entity, joint) in &bubble_query {
         if query.get(joint.parent).is_err() {
             info!("despawn bubble");
@@ -410,20 +422,6 @@ fn reconfigure_ferris_system(
         }
     }
 }
-
-// fn change_to_bubble(commands: &mut Commands, entity: Entity) {
-//     commands
-//         .entity(entity)
-//         .remove_bundle::<FerrisBundle>()
-//         .insert_bundle(FerrisBundle::bubble());
-// }
-
-// fn change_to_walking(commands: &mut Commands, entity: Entity) {
-//     commands
-//         .entity(entity)
-//         .remove_bundle::<FerrisBundle>()
-//         .insert_bundle(FerrisBundle::walking());
-// }
 
 fn ground_trace_system(
     rapier_context: Res<RapierContext>,
@@ -619,7 +617,7 @@ mod system_labels {
 impl Plugin for FerrisPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_system_set(
-            SystemSet::on_update(GameState::InGame)
+            SystemSet::new() //on_update(GameState::InGame)
                 .label(system_labels::Ground)
                 .with_system(ground_trace_system),
         );
@@ -632,9 +630,10 @@ impl Plugin for FerrisPlugin {
         );
 
         app.add_system_set(
-            SystemSet::on_update(GameState::InGame)
+            SystemSet::new() //on_update(GameState::InGame)
                 .label(system_labels::Other)
                 .after(system_labels::Input)
+                .with_system(adjust_animation_system)
                 .with_system(death_system.after(adjust_animation_system)),
         );
 

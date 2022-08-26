@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 
-use crate::ferris::PlayerInputTarget;
+use crate::ferris::{FerrisConfigureEvent, GroundState, Keys, PlayerInputTarget};
 
 #[derive(Clone, Debug, Default, Bundle, LdtkIntCell)]
 struct WallBundle {
@@ -32,26 +32,50 @@ pub struct Wall;
 //     }
 // }
 
-#[derive(Component, Copy, Clone, Default)]
-pub struct ExitDoor;
-
-#[derive(Bundle, Clone, Default)]
-pub struct ExitBundle {
-    transform: Transform,
-    exit_door: ExitDoor,
+#[derive(Component, Copy, Clone)]
+pub enum Item {
+    ExitDoor,
+    Key,
+    Bubble,
+    Spike,
+    Unknown,
 }
 
-impl From<EntityInstance> for ExitBundle {
+impl Default for Item {
+    fn default() -> Self {
+        Item::Unknown
+    }
+}
+
+#[derive(Bundle, Clone, Default)]
+pub struct ItemBundle {
+    transform: Transform,
+    item: Item,
+}
+
+impl From<EntityInstance> for ItemBundle {
     fn from(entity_instance: EntityInstance) -> Self {
         info!("pivot: {:?}", entity_instance.px);
 
-        ExitBundle {
+        let item = if entity_instance.identifier == "Exit" {
+            Item::ExitDoor
+        } else if entity_instance.identifier == "Key" {
+            Item::Key
+        } else if entity_instance.identifier == "Bubble" {
+            Item::Bubble
+        } else if entity_instance.identifier == "Spike" {
+            Item::Spike
+        } else {
+            Item::Unknown
+        };
+
+        ItemBundle {
             transform: Transform::from_xyz(
                 entity_instance.px.x as f32,
                 entity_instance.px.y as f32,
                 2.0,
             ),
-            exit_door: ExitDoor,
+            item,
         }
     }
 }
@@ -64,23 +88,58 @@ impl From<EntityInstance> for ExitBundle {
 // }
 
 #[derive(Clone, Default, Bundle, LdtkEntity)]
-pub struct ExitBundleLdtk {
+pub struct ItemBundleLdtk {
     #[from_entity_instance]
     #[bundle]
-    pub exit_bundle: ExitBundle,
+    pub exit_bundle: ItemBundle,
 }
 
 #[allow(clippy::type_complexity)]
-fn check_exit_system(
-    exit_query: Query<&Transform, Or<(With<ExitDoor>, With<PlayerInputTarget>)>>,
+fn check_items_system(
+    item_query: Query<(&Transform, &Item), (With<Item>, Without<PlayerInputTarget>)>,
+    mut player_query: Query<
+        (Entity, &Transform, &mut Keys, &GroundState),
+        (With<PlayerInputTarget>, Without<Item>),
+    >,
     mut level_selection: ResMut<LevelSelection>,
+    mut event_writer: EventWriter<FerrisConfigureEvent>,
 ) {
-    for [t1, t2] in exit_query.iter_combinations::<2>() {
-        if (t1.translation - t2.translation).length() < 16.0 {
-            info!("exit!");
+    for (entity, player_transform, mut keys, ground_state) in &mut player_query {
+        for (item_transform, item) in &item_query {
+            // info!(
+            //     "intersect: {}",
+            //     (player_transform.translation - item_transform.translation).length()
+            // );
 
-            if let LevelSelection::Index(level) = *level_selection {
-                *level_selection = LevelSelection::Index(level + 1);
+            if (player_transform.translation - item_transform.translation).length() > 12.0 {
+                continue;
+            }
+
+            match *item {
+                Item::ExitDoor if keys.key1 && !ground_state.in_bubble => {
+                    if let LevelSelection::Index(level) = *level_selection {
+                        *level_selection = LevelSelection::Index(level + 1);
+                    }
+                }
+                Item::Key if !ground_state.in_bubble => {
+                    // info!("key");
+                    keys.key1 = true;
+                }
+                Item::Bubble if !ground_state.in_bubble => {
+                    // info!("key");
+                    event_writer.send(FerrisConfigureEvent {
+                        entity,
+                        bubble: true,
+                    });
+                }
+                Item::Spike if ground_state.in_bubble => {
+                    // info!("key");
+                    event_writer.send(FerrisConfigureEvent {
+                        entity,
+                        bubble: false,
+                    });
+                }
+                _ => {}
             }
         }
     }
@@ -92,8 +151,11 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.register_ldtk_int_cell::<WallBundle>(1)
             // .register_ldtk_entity::<PlayerBundle>("Player")
-            .register_ldtk_entity::<ExitBundleLdtk>("Exit")
-            .add_system(check_exit_system);
+            .register_ldtk_entity::<ItemBundleLdtk>("Exit")
+            .register_ldtk_entity::<ItemBundleLdtk>("Key")
+            .register_ldtk_entity::<ItemBundleLdtk>("Bubble")
+            .register_ldtk_entity::<ItemBundleLdtk>("Spike")
+            .add_system(check_items_system);
     }
 }
 
