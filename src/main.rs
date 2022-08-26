@@ -14,7 +14,7 @@ fn main() {
         })
         .add_plugins(DefaultPlugins)
         .add_plugin(LdtkPlugin)
-        .insert_resource(LevelSelection::Index(2))
+        .insert_resource(LevelSelection::Identifier("Title".into()))
         .add_startup_system(setup_system);
 
     app.add_plugins(MyPlugins);

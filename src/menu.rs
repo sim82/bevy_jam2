@@ -18,8 +18,8 @@ fn setup_menu_system(
     // });
     // }
     for mut transform in &mut camera_query {
-        transform.scale.x = 0.35;
-        transform.scale.y = 0.35;
+        transform.scale.x = 0.4;
+        transform.scale.y = 0.4;
     }
 }
 
@@ -34,7 +34,7 @@ fn cleanu_menu_system(
     mut camera_query: Query<&mut Transform, With<Camera2d>>,
     // despawn_query: Query<Entity, Or<(With<Bubble>, With<crate::ferris::PlayerInputTarget>)>>,
 ) {
-    *level_selection = LevelSelection::Index(0);
+    *level_selection = LevelSelection::Identifier("Level_0".into());
 
     for mut transform in &mut camera_query {
         transform.scale.x = 0.25;

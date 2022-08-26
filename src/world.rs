@@ -115,10 +115,19 @@ fn check_items_system(
                 continue;
             }
 
+            let levels = ["Level_0", "Level_1", "Level_2"];
             match *item {
                 Item::ExitDoor if keys.key1 && !ground_state.in_bubble => {
-                    if let LevelSelection::Index(level) = *level_selection {
-                        *level_selection = LevelSelection::Index(level + 1);
+                    if let LevelSelection::Identifier(level) = level_selection.as_ref() {
+                        let mut next_level = level.clone();
+                        for (i, l) in levels.iter().enumerate() {
+                            if level == *l {
+                                next_level = levels[(i + 1) % levels.len()].to_string();
+                            }
+                        }
+                        *level_selection = LevelSelection::Identifier(next_level);
+
+                        // *level_selection = LevelSelection::Index(level + 1);
                     }
                 }
                 Item::Key if !ground_state.in_bubble => {
