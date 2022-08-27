@@ -85,6 +85,45 @@ fn despawn_to_corpse_system(
     }
 }
 
+#[derive(Component)]
+pub struct DespawnFadeout {
+    timer: Timer,
+}
+impl DespawnFadeout {
+    fn from_seconds(duration: f32) -> Self {
+        Self {
+            timer: Timer::from_seconds(duration, false),
+        }
+    }
+}
+
+fn despawn_fadeout_system(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(
+        Entity,
+        &mut Transform,
+        &mut DespawnFadeout,
+        &mut TextureAtlasSprite,
+    )>,
+) {
+    for (entity, mut transform, mut despawn_fadeout, mut texture_atlas_sprite) in &mut query {
+        despawn_fadeout.timer.tick(time.delta());
+
+        if despawn_fadeout.timer.finished() {
+            commands.entity(entity).despawn_recursive();
+            continue;
+        }
+        let f = despawn_fadeout.timer.percent();
+        transform.scale.x = 1.0 + f * 3.0;
+        transform.scale.y = 1.0 + f * 3.0;
+
+        texture_atlas_sprite
+            .color
+            .set_a(despawn_fadeout.timer.percent_left());
+    }
+}
+
 pub fn exit_on_esc_system(
     keyboard_input: Res<Input<KeyCode>>,
     mut app_exit_events: EventWriter<bevy::app::AppExit>,
@@ -99,7 +138,8 @@ struct MiscPlugin;
 impl Plugin for MiscPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(despawn_reaper_system)
-            .add_system_to_stage(CoreStage::Last, despawn_to_corpse_system);
+            .add_system_to_stage(CoreStage::Last, despawn_to_corpse_system)
+            .add_system(despawn_fadeout_system);
     }
 }
 

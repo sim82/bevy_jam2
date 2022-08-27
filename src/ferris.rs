@@ -293,10 +293,10 @@ fn player_input_system(
             WALK_IMPULSE_AIR
         };
 
-        if input.pressed(KeyCode::A) {
+        if input.pressed(KeyCode::A) || input.pressed(KeyCode::Left) {
             impulse_h -= walk_impulse;
         }
-        if input.pressed(KeyCode::D) {
+        if input.pressed(KeyCode::D) || input.pressed(KeyCode::Right) {
             impulse_h += walk_impulse;
         }
         if ground_state.in_bubble && input.just_pressed(KeyCode::P) {
@@ -316,7 +316,9 @@ fn player_input_system(
 
         if (ground_state.on_ground || ground_state.in_bubble)
             && ground_state.jump_timer.finished()
-            && input.pressed(KeyCode::Space)
+            && (input.pressed(KeyCode::Space)
+                || input.pressed(KeyCode::Up)
+                || input.pressed(KeyCode::W))
         {
             impulse_v += jump_impulse;
             ground_state.jump_timer.reset();
@@ -449,9 +451,9 @@ fn ground_trace_system(
         }
 
         ground_state.wobble = ground_state.on_ground && velocity.linvel.y < -20.0;
-        if ground_state.wobble {
-            info!("wobble");
-        }
+        // if ground_state.wobble {
+        //     info!("wobble");
+        // }
     }
 }
 
@@ -538,15 +540,20 @@ fn death_system(
             &mut SpritesheetAnimation,
             &mut LockedAxes,
             &mut Velocity,
+            &Transform,
         ),
         With<PlayerInputTarget>,
     >,
 ) {
-    for (entity, ground_state, mut animation, mut locked_axes, mut velocity) in &mut query {
+    for (entity, ground_state, mut animation, mut locked_axes, mut velocity, transform) in
+        &mut query
+    {
         if ground_state.terminal_velocity {
             info!("terminal velocity");
         }
-        if ground_state.on_ground && ground_state.terminal_velocity {
+        if (ground_state.on_ground && ground_state.terminal_velocity)
+            || transform.translation.y < -20.0
+        {
             animation.start_animation("die", false);
             commands
                 .entity(entity)

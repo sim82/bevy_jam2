@@ -97,7 +97,7 @@ impl SpritesheetAnimation {
     }
 
     pub fn start_animation(&mut self, name: &str, do_loop: bool) {
-        info!("animations: {} -> {}", self.active_animation, name);
+        debug!("animations: {} -> {}", self.active_animation, name);
         self.active_animation = name.into();
         self.current_frame = None;
         self.frame_timer = None;

@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 
-use crate::ferris::{FerrisConfigureEvent, GroundState, Keys, PlayerInputTarget};
+use crate::{
+    ferris::{FerrisConfigureEvent, GroundState, Keys, PlayerInputTarget},
+    DespawnFadeout, GameState,
+};
 
 #[derive(Clone, Debug, Default, Bundle, LdtkIntCell)]
 struct WallBundle {
@@ -49,7 +52,7 @@ impl Default for Item {
 
 #[derive(Bundle, Clone, Default)]
 pub struct ItemBundle {
-    transform: Transform,
+    // transform: Transform,
     item: Item,
 }
 
@@ -70,11 +73,11 @@ impl From<EntityInstance> for ItemBundle {
         };
 
         ItemBundle {
-            transform: Transform::from_xyz(
-                entity_instance.px.x as f32,
-                entity_instance.px.y as f32,
-                2.0,
-            ),
+            // transform: Transform::from_xyz(
+            //     entity_instance.px.x as f32,
+            //     entity_instance.px.y as f32,
+            //     2.0,
+            // ),
             item,
         }
     }
@@ -92,11 +95,16 @@ pub struct ItemBundleLdtk {
     #[from_entity_instance]
     #[bundle]
     pub exit_bundle: ItemBundle,
+
+    #[sprite_sheet_bundle]
+    #[bundle]
+    pub sprite_sheet_bundle: SpriteSheetBundle,
 }
 
 #[allow(clippy::type_complexity)]
 fn check_items_system(
-    item_query: Query<(&Transform, &Item), (With<Item>, Without<PlayerInputTarget>)>,
+    mut commands: Commands,
+    item_query: Query<(Entity, &Transform, &Item), (With<Item>, Without<PlayerInputTarget>)>,
     mut player_query: Query<
         (Entity, &Transform, &mut Keys, &GroundState),
         (With<PlayerInputTarget>, Without<Item>),
@@ -105,7 +113,7 @@ fn check_items_system(
     mut event_writer: EventWriter<FerrisConfigureEvent>,
 ) {
     for (entity, player_transform, mut keys, ground_state) in &mut player_query {
-        for (item_transform, item) in &item_query {
+        for (item_entity, item_transform, item) in &item_query {
             // info!(
             //     "intersect: {}",
             //     (player_transform.translation - item_transform.translation).length()
@@ -133,6 +141,10 @@ fn check_items_system(
                 Item::Key if !ground_state.in_bubble => {
                     // info!("key");
                     keys.key1 = true;
+                    commands
+                        .entity(item_entity)
+                        .remove_bundle::<ItemBundle>()
+                        .insert(DespawnFadeout::from_seconds(0.5));
                 }
                 Item::Bubble if !ground_state.in_bubble => {
                     // info!("key");
@@ -154,6 +166,17 @@ fn check_items_system(
     }
 }
 
+fn check_player_alive(
+    mut commands: Commands,
+    mut state: ResMut<State<GameState>>,
+    query: Query<&PlayerInputTarget>,
+) {
+    // if query.is_empty() {
+    //     info!("no player -> change to menu");
+    //     state.set(GameState::Menu);
+    // }
+}
+
 pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
@@ -164,7 +187,10 @@ impl Plugin for WorldPlugin {
             .register_ldtk_entity::<ItemBundleLdtk>("Key")
             .register_ldtk_entity::<ItemBundleLdtk>("Bubble")
             .register_ldtk_entity::<ItemBundleLdtk>("Spike")
-            .add_system(check_items_system);
+            .add_system(check_items_system)
+            .add_system_set(
+                SystemSet::on_update(GameState::InGame).with_system(check_player_alive),
+            );
     }
 }
 
