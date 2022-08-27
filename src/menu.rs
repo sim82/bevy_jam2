@@ -1,12 +1,13 @@
-use bevy::prelude::*;
+use bevy::{log::Level, prelude::*};
 use bevy_ecs_ldtk::LevelSelection;
 
-use crate::GameState;
+use crate::{GameEvent, GameState};
 
 fn setup_menu_system(
     // mut commands: Commands,
     // mut event_writer: EventWriter<SpawnFerrisEvent>,
     mut camera_query: Query<&mut Transform, With<Camera2d>>,
+    mut level_selection: ResMut<LevelSelection>,
 ) {
     // if !spawnpoint_query.is_empty() {
     //     info!("send spawn");
@@ -21,6 +22,7 @@ fn setup_menu_system(
         transform.scale.x = 0.4;
         transform.scale.y = 0.4;
     }
+    *level_selection = LevelSelection::Identifier("Title".into());
 }
 
 fn menu_update_system(input: Res<Input<KeyCode>>, mut state: ResMut<State<GameState>>) {
@@ -29,9 +31,10 @@ fn menu_update_system(input: Res<Input<KeyCode>>, mut state: ResMut<State<GameSt
     }
 }
 
-fn cleanu_menu_system(
+fn cleanup_menu_system(
     mut level_selection: ResMut<LevelSelection>,
     mut camera_query: Query<&mut Transform, With<Camera2d>>,
+    mut event_writer: EventWriter<GameEvent>,
     // despawn_query: Query<Entity, Or<(With<Bubble>, With<crate::ferris::PlayerInputTarget>)>>,
 ) {
     *level_selection = LevelSelection::Identifier("Level_0".into());
@@ -40,6 +43,8 @@ fn cleanu_menu_system(
         transform.scale.x = 0.25;
         transform.scale.y = 0.25;
     }
+
+    event_writer.send(GameEvent::LevelEnd);
 }
 
 pub struct MenuPlugin;
@@ -47,7 +52,7 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_system_set(SystemSet::on_enter(GameState::Menu).with_system(setup_menu_system));
         app.add_system_set(SystemSet::on_update(GameState::Menu).with_system(menu_update_system));
-        app.add_system_set(SystemSet::on_exit(GameState::Menu).with_system(cleanu_menu_system));
+        app.add_system_set(SystemSet::on_exit(GameState::Menu).with_system(cleanup_menu_system));
         // app.add_system_set(SystemSet::on_enter(GameState::InGame).with_system(start_game_system));
     }
 }

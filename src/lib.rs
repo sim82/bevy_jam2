@@ -24,11 +24,17 @@ pub enum GameState {
     InGame,
 }
 
+pub enum GameEvent {
+    PlayerDied,
+    LevelEnd,
+}
+
 #[derive(Component)]
 #[component(storage = "SparseSet")]
 pub enum Despawn {
     ThisFrame,
     TimeToLive(f32),
+    OnLevelEnd,
 }
 
 #[derive(Component)]
@@ -39,7 +45,12 @@ fn despawn_reaper_system(
     mut commands: Commands,
     time: Res<Time>,
     mut query: Query<(Entity, &mut Despawn)>,
+    mut event_reader: EventReader<GameEvent>,
 ) {
+    let level_end = event_reader
+        .iter()
+        .any(|e| matches!(e, GameEvent::LevelEnd));
+
     for (entity, mut despawn) in query.iter_mut() {
         let despawn = match *despawn {
             Despawn::ThisFrame => true,
@@ -47,6 +58,7 @@ fn despawn_reaper_system(
                 *ttl -= time.delta_seconds();
                 *ttl <= 0.0
             }
+            Despawn::OnLevelEnd => level_end,
         };
         if despawn {
             info!("despawn {:?}", entity);
@@ -68,20 +80,24 @@ fn despawn_to_corpse_system(
         ),
         With<DespawnToCorpse>,
     >,
+    mut event_writer: EventWriter<GameEvent>,
 ) {
     for (entity, sprite, texture_atlas, transform, animation) in &query {
         if !animation.is_animation_finished() {
             continue;
         }
         info!("despawn to corpse: {:?}", entity);
-        commands.spawn_bundle(SpriteSheetBundle {
-            sprite: sprite.clone(),
-            texture_atlas: texture_atlas.clone(),
-            transform: *transform,
-            ..default()
-        });
+        commands
+            .spawn_bundle(SpriteSheetBundle {
+                sprite: sprite.clone(),
+                texture_atlas: texture_atlas.clone(),
+                transform: *transform,
+                ..default()
+            })
+            .insert(Despawn::OnLevelEnd);
 
         commands.entity(entity).despawn_recursive();
+        event_writer.send(GameEvent::PlayerDied);
     }
 }
 
@@ -139,7 +155,8 @@ impl Plugin for MiscPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(despawn_reaper_system)
             .add_system_to_stage(CoreStage::Last, despawn_to_corpse_system)
-            .add_system(despawn_fadeout_system);
+            .add_system(despawn_fadeout_system)
+            .add_event::<GameEvent>();
     }
 }
 

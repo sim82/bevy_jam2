@@ -24,7 +24,7 @@ fn main() {
             .continue_to_state(GameState::Menu)
             .with_collection::<MyAssets>(),
     )
-    .add_system_set(SystemSet::on_enter(GameState::Menu).with_system(use_my_assets));
+    .add_system_set(SystemSet::on_exit(GameState::AssetLoading).with_system(use_my_assets));
 
     #[cfg(feature = "inspector")]
     app.add_plugin(bevy_inspector_egui::WorldInspectorPlugin::default());

@@ -3,7 +3,7 @@ use bevy_ecs_ldtk::prelude::*;
 
 use crate::{
     ferris::{FerrisConfigureEvent, GroundState, Keys, PlayerInputTarget},
-    DespawnFadeout, GameState,
+    DespawnFadeout, GameEvent, GameState,
 };
 
 #[derive(Clone, Debug, Default, Bundle, LdtkIntCell)]
@@ -13,6 +13,11 @@ struct WallBundle {
 
 #[derive(Component, Default, Clone, Debug)]
 pub struct Wall;
+
+#[derive(Default)]
+pub struct PlayerSpawnState {
+    pub spawned: bool,
+}
 
 // #[derive(Bundle, Clone, Default)]
 // pub struct SpawnpointBundle {
@@ -58,8 +63,6 @@ pub struct ItemBundle {
 
 impl From<EntityInstance> for ItemBundle {
     fn from(entity_instance: EntityInstance) -> Self {
-        info!("pivot: {:?}", entity_instance.px);
-
         let item = if entity_instance.identifier == "Exit" {
             Item::ExitDoor
         } else if entity_instance.identifier == "Key" {
@@ -167,14 +170,25 @@ fn check_items_system(
 }
 
 fn check_player_alive(
-    mut commands: Commands,
+    mut event_reader: EventReader<GameEvent>,
     mut state: ResMut<State<GameState>>,
-    query: Query<&PlayerInputTarget>,
 ) {
-    // if query.is_empty() {
+    for event in event_reader.iter() {
+        if matches!(event, GameEvent::PlayerDied) {
+            state.set(GameState::Menu).unwrap();
+        }
+    }
+    // if query.is_empty() && player_spawn_state.spawned {
     //     info!("no player -> change to menu");
     //     state.set(GameState::Menu);
     // }
+}
+
+fn game_start_system(mut player_spawn_state: ResMut<PlayerSpawnState>) {
+    player_spawn_state.spawned = false;
+}
+fn game_end_system(mut event_writer: EventWriter<GameEvent>) {
+    event_writer.send(GameEvent::LevelEnd);
 }
 
 pub struct WorldPlugin;
@@ -188,9 +202,11 @@ impl Plugin for WorldPlugin {
             .register_ldtk_entity::<ItemBundleLdtk>("Bubble")
             .register_ldtk_entity::<ItemBundleLdtk>("Spike")
             .add_system(check_items_system)
-            .add_system_set(
-                SystemSet::on_update(GameState::InGame).with_system(check_player_alive),
-            );
+            .add_system_set(SystemSet::on_update(GameState::InGame).with_system(check_player_alive))
+            .add_system_set(SystemSet::on_enter(GameState::InGame).with_system(game_start_system))
+            .add_system_set(SystemSet::on_exit(GameState::InGame).with_system(game_end_system));
+
+        app.init_resource::<PlayerSpawnState>();
     }
 }
 

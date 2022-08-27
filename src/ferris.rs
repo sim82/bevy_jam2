@@ -1,6 +1,7 @@
 use crate::assets::MyAssets;
 use crate::camera::CameraTarget;
 use crate::spritesheet::{Spritesheet, SpritesheetAnimation};
+use crate::world::PlayerSpawnState;
 use crate::{Despawn, GameState};
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
@@ -33,9 +34,15 @@ const MAX_WALK_VEL: f32 = 90.0;
 // const FERRIS_Z: f32 = 1.0;
 const BUBBLE_Z: f32 = 2.0;
 
-#[derive(Default, Clone, Component)]
+#[derive(Default, Clone, Component, Reflect)]
+#[reflect(Component)]
 pub struct Keys {
     pub key1: bool,
+}
+
+#[derive(Clone, Bundle, Default)]
+pub struct FerrisPersistentBundle {
+    pub keys: Keys,
 }
 
 #[derive(Clone, Bundle)]
@@ -54,7 +61,6 @@ pub struct FerrisBundle {
     pub collider_mass_properties: ColliderMassProperties,
     pub ground_state: GroundState,
     pub gravity_scale: GravityScale,
-    pub keys: Keys,
 }
 
 impl Default for FerrisBundle {
@@ -96,7 +102,6 @@ impl FerrisBundle {
             collider_mass_properties: default(),
             ground_state: default(),
             gravity_scale: default(),
-            keys: default(),
         }
     }
 
@@ -125,7 +130,6 @@ impl FerrisBundle {
             collider_mass_properties: ColliderMassProperties::Density(0.3),
             ground_state: GroundState::default().with_bubble(),
             gravity_scale: GravityScale(0.5),
-            keys: default(),
         }
     }
 }
@@ -186,6 +190,7 @@ impl GroundState {
     }
 }
 
+#[derive(Debug)]
 pub struct FerrisConfigureEvent {
     pub entity: Entity,
     pub bubble: bool,
@@ -199,6 +204,7 @@ fn spawn_ferris_system(
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     ldtk_added_query: Query<(Entity, &EntityInstance), Added<EntityInstance>>,
     mut event_writer: EventWriter<FerrisConfigureEvent>,
+    mut player_spawn_state: ResMut<PlayerSpawnState>,
 ) {
     let my_assets = if let Some(my_assets) = my_assets {
         my_assets
@@ -210,6 +216,10 @@ fn spawn_ferris_system(
         if entity_instance.identifier != "Player" {
             continue;
         }
+        info!("spawn ferris: {:?}", entity);
+
+        player_spawn_state.spawned = true;
+
         let spritesheet = spritesheets.get(&my_assets.ferris_spritesheet).unwrap();
         info!("spritesheet: {:?}", spritesheet);
         let num_frames = spritesheet.durations.len();
@@ -232,6 +242,7 @@ fn spawn_ferris_system(
             .insert(texture_atlas.clone())
             .insert(animation)
             .insert(Name::new("ferris"))
+            .insert_bundle(FerrisPersistentBundle::default())
             .id();
 
         event_writer.send(FerrisConfigureEvent {
@@ -241,19 +252,19 @@ fn spawn_ferris_system(
     }
 }
 
-fn cleanup_bubbles_system(
-    mut commands: Commands,
-    bubble_query: Query<(Entity, &ImpulseJoint), With<Bubble>>,
-    query: Query<Entity, Without<Bubble>>,
-) {
-    // polling this constantly is crap. probably should use state transitions for clean level transitions
-    for (entity, joint) in &bubble_query {
-        if query.get(joint.parent).is_err() {
-            info!("despawn bubble");
-            commands.entity(entity).despawn();
-        }
-    }
-}
+// fn cleanup_bubbles_system(
+//     mut commands: Commands,
+//     bubble_query: Query<(Entity, &ImpulseJoint), With<Bubble>>,
+//     query: Query<Entity, Without<Bubble>>,
+// ) {
+//     // polling this constantly is crap. probably should use state transitions for clean level transitions
+//     for (entity, joint) in &bubble_query {
+//         if query.get(joint.parent).is_err() {
+//             info!("despawn bubble {:?}", entity);
+//             commands.entity(entity).despawn();
+//         }
+//     }
+// }
 
 fn player_input_system(
     input: Res<Input<KeyCode>>,
@@ -327,7 +338,7 @@ fn player_input_system(
         if impulse_h.signum() == velocity.linvel.x.signum()
             && velocity.linvel.x.abs() > MAX_WALK_VEL
         {
-            info!("clamp walk");
+            // info!("clamp walk");
             impulse_h = 0.0;
         }
 
@@ -352,10 +363,11 @@ fn reconfigure_ferris_system(
         return;
     };
     for event in event_reader.iter() {
+        info!("reconfigure ferris: {:?}", event);
         for (bubble_entity, joint, bubble_transform) in &bubble_query {
             if joint.parent == event.entity {
                 commands.entity(bubble_entity).despawn();
-                info!("despawn bubble");
+                info!("despawn bubble {:?}", bubble_entity);
 
                 let mut animation = SpritesheetAnimation::new(my_assets.bubble_spritesheet.clone());
                 animation.start_animation("bubble", true);
@@ -415,7 +427,8 @@ fn reconfigure_ferris_system(
                 })
                 .insert(RigidBody::Dynamic)
                 .insert(AdditionalMassProperties::Mass(0.0001))
-                .insert(ImpulseJoint::new(event.entity, joint));
+                .insert(ImpulseJoint::new(event.entity, joint))
+                .insert(Despawn::OnLevelEnd);
         } else {
             commands
                 .entity(event.entity)
@@ -531,6 +544,7 @@ fn adjust_animation_system(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn death_system(
     mut commands: Commands,
     mut query: Query<
@@ -549,7 +563,7 @@ fn death_system(
         &mut query
     {
         if ground_state.terminal_velocity {
-            info!("terminal velocity");
+            debug!("terminal velocity");
         }
         if (ground_state.on_ground && ground_state.terminal_velocity)
             || transform.translation.y < -20.0
@@ -591,8 +605,9 @@ fn bubble_wobble_system(
         let ty3 = time.seconds_since_startup() * 23.0;
 
         // blend between low and high frequency wobble modes, based on wobble-timer
-        let l = 1.0
-            - (bubble.wobble_timer.elapsed_secs() / bubble.wobble_timer.duration().as_secs_f32());
+        let l = bubble.wobble_timer.percent_left();
+        //  1.0
+        //     - (bubble.wobble_timer.elapsed_secs() / bubble.wobble_timer.duration().as_secs_f32());
 
         let c1 = 0.05 * (1.0 - l);
         let c2 = 0.05 * l;
@@ -647,9 +662,11 @@ impl Plugin for FerrisPlugin {
         app.add_system(bubble_wobble_system)
             .add_system(spawn_ferris_system)
             .add_system(adjust_animation_system)
-            .add_system(reconfigure_ferris_system)
-            .add_system(cleanup_bubbles_system);
+            .add_system(reconfigure_ferris_system);
+        // .add_system(cleanup_bubbles_system);
 
         app.add_event::<FerrisConfigureEvent>();
+
+        app.register_type::<Keys>();
     }
 }
