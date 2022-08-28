@@ -1,12 +1,12 @@
 use bevy::{log::Level, prelude::*};
 use bevy_ecs_ldtk::LevelSelection;
 
-use crate::{GameEvent, GameState};
+use crate::{camera::TrackingCamera, GameEvent, GameState};
 
 fn setup_menu_system(
     // mut commands: Commands,
     // mut event_writer: EventWriter<SpawnFerrisEvent>,
-    mut camera_query: Query<&mut Transform, With<Camera2d>>,
+    mut camera_query: Query<&mut Transform, With<TrackingCamera>>,
     mut level_selection: ResMut<LevelSelection>,
 ) {
     // if !spawnpoint_query.is_empty() {
@@ -19,8 +19,8 @@ fn setup_menu_system(
     // });
     // }
     for mut transform in &mut camera_query {
-        transform.scale.x = 0.4;
-        transform.scale.y = 0.4;
+        transform.scale.x = 0.35;
+        transform.scale.y = 0.35;
     }
     *level_selection = LevelSelection::Identifier("Title".into());
 }
@@ -33,7 +33,7 @@ fn menu_update_system(input: Res<Input<KeyCode>>, mut state: ResMut<State<GameSt
 
 fn cleanup_menu_system(
     mut level_selection: ResMut<LevelSelection>,
-    mut camera_query: Query<&mut Transform, With<Camera2d>>,
+    mut camera_query: Query<&mut Transform, With<TrackingCamera>>,
     mut event_writer: EventWriter<GameEvent>,
     // despawn_query: Query<Entity, Or<(With<Bubble>, With<crate::ferris::PlayerInputTarget>)>>,
 ) {

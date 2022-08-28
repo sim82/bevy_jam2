@@ -206,7 +206,11 @@ impl Plugin for WorldPlugin {
             .add_system_set(SystemSet::on_enter(GameState::InGame).with_system(game_start_system))
             .add_system_set(SystemSet::on_exit(GameState::InGame).with_system(game_end_system));
 
-        app.init_resource::<PlayerSpawnState>();
+        app.init_resource::<PlayerSpawnState>()
+            .insert_resource(LdtkSettings {
+                level_background: LevelBackground::Nonexistent,
+                ..default()
+            });
     }
 }
 

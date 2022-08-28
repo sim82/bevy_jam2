@@ -240,6 +240,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy-parallax"
+version = "0.2.0"
+dependencies = [
+ "bevy",
+ "serde",
+]
+
+[[package]]
 name = "bevy_animation"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1710,6 +1718,7 @@ dependencies = [
  "anyhow",
  "bevy",
  "bevy-inspector-egui",
+ "bevy-parallax",
  "bevy_asset_loader",
  "bevy_ecs_ldtk",
  "bevy_ecs_ldtk_macros",

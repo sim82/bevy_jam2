@@ -6,6 +6,7 @@ use crate::{Despawn, GameState};
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use bevy_ecs_ldtk::{prelude::*, EntityInstance};
+use bevy_parallax::ParallaxMoveEvent;
 use bevy_rapier2d::prelude::*;
 
 // tunables
@@ -31,8 +32,8 @@ const WALKING: bool = true;
 
 const MAX_WALK_VEL: f32 = 90.0;
 
-// const FERRIS_Z: f32 = 1.0;
-const BUBBLE_Z: f32 = 2.0;
+const FERRIS_Z: f32 = 4.0;
+const BUBBLE_Z: f32 = 5.0;
 
 #[derive(Default, Clone, Component, Reflect)]
 #[reflect(Component)]
@@ -275,13 +276,13 @@ fn player_input_system(
             &mut ExternalImpulse,
             &mut GroundState,
             &Velocity,
-            &Transform,
+            &mut Transform,
         ),
         With<PlayerInputTarget>,
     >,
     mut event_writer: EventWriter<FerrisConfigureEvent>,
 ) {
-    for (entity, mut external_impulse, mut ground_state, velocity, _transform) in &mut query {
+    for (entity, mut external_impulse, mut ground_state, velocity, mut transform) in &mut query {
         ground_state.jump_timer.tick(time.delta());
 
         // info!("velocity: {:?}", velocity);
@@ -345,6 +346,7 @@ fn player_input_system(
         external_impulse.impulse.x = impulse_h;
         external_impulse.impulse.y = impulse_v;
         // external_impulse.torque_impulse = rot_impulse;
+        transform.translation.z = FERRIS_Z; // crappy hack
     }
 }
 
@@ -487,11 +489,16 @@ fn adjust_animation_system(
         ),
         With<PlayerInputTarget>,
     >,
+    mut move_event_writer: EventWriter<ParallaxMoveEvent>,
 ) {
     for (ground_state, velocity, mut animation, transform) in &mut query {
         if !ground_state.in_bubble {
             let walking = velocity.linvel.x.abs() > 0.2;
             let vel_right = velocity.linvel.x >= 0.0;
+
+            // move_event_writer.send(ParallaxMoveEvent {
+            //     camera_move_speed: velocity.linvel.x,
+            // });
 
             if ground_state.on_ground {
                 if walking {

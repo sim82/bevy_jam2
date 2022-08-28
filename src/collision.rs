@@ -135,7 +135,10 @@ impl Plugin for CollisionPlugin {
         app.add_plugin(RapierDebugRenderPlugin::default())
             .insert_resource(DebugRenderContext {
                 enabled: false,
-                pipeline: DebugRenderPipeline::new(default(), DebugRenderMode::all()),
+                pipeline: bevy_rapier2d::rapier::prelude::DebugRenderPipeline::new(
+                    default(),
+                    DebugRenderMode::all(),
+                ),
             });
 
         // {

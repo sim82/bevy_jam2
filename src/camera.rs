@@ -2,9 +2,13 @@ use bevy::{math::Vec3Swizzles, prelude::*};
 
 #[derive(Component, Clone)]
 pub struct CameraTarget;
+
+#[derive(Component, Clone)]
+pub struct TrackingCamera;
+
 fn track_camera_system(
-    mut camera_query: Query<&mut Transform, (With<Camera2d>, Without<CameraTarget>)>,
-    target_query: Query<&Transform, With<CameraTarget>>,
+    mut camera_query: Query<&mut Transform, (With<Camera2d>, With<TrackingCamera>)>,
+    target_query: Query<&Transform, (With<CameraTarget>, Without<TrackingCamera>)>,
 ) {
     if let (Ok(mut camera_transform), Ok(target_transform)) =
         (camera_query.get_single_mut(), target_query.get_single())

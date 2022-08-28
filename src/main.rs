@@ -1,7 +1,12 @@
 use bevy::{asset::AssetServerSettings, prelude::*, render::texture::ImageSettings};
 use bevy_asset_loader::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
-use game3::{assets::MyAssets, GameState, MyPlugins};
+use bevy_parallax::{
+    LayerData, ParallaxCameraComponent, ParallaxMoveEvent, ParallaxPlugin, ParallaxResource,
+};
+use game3::{assets::MyAssets, camera::TrackingCamera, GameState, MyPlugins};
+
+const WORLD_Z: f32 = 3.0;
 
 fn main() {
     let mut app = App::new();
@@ -14,6 +19,7 @@ fn main() {
         })
         .add_plugins(DefaultPlugins)
         .add_plugin(LdtkPlugin)
+        .add_plugin(ParallaxPlugin)
         .insert_resource(LevelSelection::Identifier("Title".into()))
         .add_startup_system(setup_system);
 
@@ -30,14 +36,61 @@ fn main() {
     app.add_plugin(bevy_inspector_egui::WorldInspectorPlugin::default());
 
     app.add_system(game3::exit_on_esc_system);
+
+    app.insert_resource(ParallaxResource {
+        layer_data: vec![
+            LayerData {
+                speed: 0.01,
+                path: "background1/background1.png".to_string(),
+                tile_size: Vec2::new(640.0, 640.0),
+                cols: 1,
+                rows: 1,
+                scale: 1.0,
+                z: 0.0,
+                ..Default::default()
+            },
+            LayerData {
+                speed: 0.06,
+                path: "background1/background2.png".to_string(),
+                tile_size: Vec2::new(640.0, 640.0),
+                cols: 1,
+                rows: 1,
+                scale: 1.0,
+                z: 1.0,
+                ..Default::default()
+            },
+            LayerData {
+                speed: 0.1,
+                path: "background1/background3.png".to_string(),
+                tile_size: Vec2::new(640.0, 640.0),
+                cols: 1,
+                rows: 1,
+                scale: 1.0,
+                z: 2.0,
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    });
+
     app.run();
 }
 
 fn setup_system(mut commands: Commands) {
-    let mut bundle = Camera2dBundle::default();
-    // bundle.transform.scale = Vec3::new(0.4, 0.4, 1.0);
-    bundle.transform.scale = Vec3::new(0.25, 0.25, 1.0);
-    commands.spawn_bundle(bundle);
+    let mut tracking_camera = Camera2dBundle::default();
+    tracking_camera.transform.scale = Vec3::new(0.25, 0.25, 1.0);
+    tracking_camera.camera.priority = 1;
+    commands
+        .spawn_bundle(tracking_camera)
+        .insert(TrackingCamera)
+        .insert(ParallaxCameraComponent::default())
+        .insert(Name::new("tracking camera"));
+
+    // let parallax_camera = Camera2dBundle::default();
+    // commands
+    //     .spawn_bundle(parallax_camera)
+    //     .insert(ParallaxCameraComponent)
+    //     .insert(Name::new("parallax camera"));
 }
 
 fn use_my_assets(mut commands: Commands, my_assets: Res<MyAssets>) {
@@ -45,6 +98,7 @@ fn use_my_assets(mut commands: Commands, my_assets: Res<MyAssets>) {
     info!("use my assets");
     commands.spawn_bundle(LdtkWorldBundle {
         ldtk_handle: my_assets.world.clone(),
+        transform: Transform::from_xyz(0.0, 0.0, WORLD_Z),
         ..Default::default()
     });
 
