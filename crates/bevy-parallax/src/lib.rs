@@ -1,4 +1,4 @@
-use bevy::{math::Vec3Swizzles, prelude::*};
+use bevy::prelude::*;
 
 pub mod layer;
 pub mod parallax;
@@ -31,14 +31,13 @@ fn initialize_parallax_system(
 
 /// Move camera and background layers
 fn follow_camera_system(
-    mut camera_query: Query<(&Transform, &parallax::ParallaxCameraComponent)>,
+    mut camera_query: Query<&Transform, With<ParallaxCameraComponent>>,
     mut layer_query: Query<
         (&mut Transform, &layer::LayerComponent),
         Without<parallax::ParallaxCameraComponent>,
     >,
-    mut move_events: EventReader<parallax::ParallaxMoveEvent>,
 ) {
-    if let Some((camera_transform, parallax)) = camera_query.iter_mut().next() {
+    if let Some(camera_transform) = camera_query.iter_mut().next() {
         for (mut layer_transform, layer) in layer_query.iter_mut() {
             layer_transform.translation.x = camera_transform.translation.x * -layer.speed;
             layer_transform.translation.y =

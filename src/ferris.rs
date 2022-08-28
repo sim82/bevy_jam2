@@ -6,7 +6,6 @@ use crate::{Despawn, GameState};
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use bevy_ecs_ldtk::{prelude::*, EntityInstance};
-use bevy_parallax::ParallaxMoveEvent;
 use bevy_rapier2d::prelude::*;
 
 // tunables
@@ -489,16 +488,11 @@ fn adjust_animation_system(
         ),
         With<PlayerInputTarget>,
     >,
-    mut move_event_writer: EventWriter<ParallaxMoveEvent>,
 ) {
     for (ground_state, velocity, mut animation, transform) in &mut query {
         if !ground_state.in_bubble {
             let walking = velocity.linvel.x.abs() > 0.2;
             let vel_right = velocity.linvel.x >= 0.0;
-
-            // move_event_writer.send(ParallaxMoveEvent {
-            //     camera_move_speed: velocity.linvel.x,
-            // });
 
             if ground_state.on_ground {
                 if walking {

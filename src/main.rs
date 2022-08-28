@@ -1,9 +1,7 @@
 use bevy::{asset::AssetServerSettings, prelude::*, render::texture::ImageSettings};
 use bevy_asset_loader::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
-use bevy_parallax::{
-    LayerData, ParallaxCameraComponent, ParallaxMoveEvent, ParallaxPlugin, ParallaxResource,
-};
+use bevy_parallax::{LayerData, ParallaxCameraComponent, ParallaxPlugin, ParallaxResource};
 use game3::{assets::MyAssets, camera::TrackingCamera, GameState, MyPlugins};
 
 const WORLD_Z: f32 = 3.0;

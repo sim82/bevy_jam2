@@ -1,4 +1,4 @@
-use bevy::{log::Level, prelude::*};
+use bevy::prelude::*;
 use bevy_ecs_ldtk::LevelSelection;
 
 use crate::{camera::TrackingCamera, GameEvent, GameState};
