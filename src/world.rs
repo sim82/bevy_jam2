@@ -126,7 +126,7 @@ fn check_items_system(
                 continue;
             }
 
-            let levels = ["Level_0", "Level_1", "Level_2"];
+            let levels = ["Level_0", "Level_1", "Level_2", "End"];
             match *item {
                 Item::ExitDoor if keys.key1 && !ground_state.in_bubble => {
                     if let LevelSelection::Identifier(level) = level_selection.as_ref() {

@@ -13,6 +13,7 @@ pub mod debug_ui;
 
 pub mod assets;
 pub mod collision;
+pub mod firework;
 pub mod menu;
 pub mod world;
 
@@ -171,7 +172,8 @@ impl PluginGroup for MyPlugins {
             .add(ferris::FerrisPlugin)
             .add(camera::CameraPlugin)
             .add(MiscPlugin)
-            .add(menu::MenuPlugin);
+            .add(menu::MenuPlugin)
+            .add(firework::FireworkPlugin);
 
         #[cfg(feature = "debug_ui")]
         group.add(debug_ui::DebugUiPlugin);

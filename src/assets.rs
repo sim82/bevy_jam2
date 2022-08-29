@@ -21,4 +21,10 @@ pub struct MyAssets {
 
     #[asset(path = "bubble_single.png")]
     pub bubble_single: Handle<Image>,
+
+    #[asset(path = "firework_orange.png")]
+    pub firework_orange: Handle<Image>,
+
+    #[asset(path = "firework.png")]
+    pub firework: Handle<Image>,
 }

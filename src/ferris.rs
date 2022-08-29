@@ -2,7 +2,7 @@ use crate::assets::MyAssets;
 use crate::camera::CameraTarget;
 use crate::spritesheet::{Spritesheet, SpritesheetAnimation};
 use crate::world::PlayerSpawnState;
-use crate::{Despawn, GameState};
+use crate::{firework, Despawn, GameState};
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use bevy_ecs_ldtk::{prelude::*, EntityInstance};
