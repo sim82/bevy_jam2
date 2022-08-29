@@ -1,3 +1,6 @@
+use std::f32::consts::E;
+use std::time::Duration;
+
 use crate::assets::MyAssets;
 use crate::camera::CameraTarget;
 use crate::spritesheet::{Spritesheet, SpritesheetAnimation};
@@ -7,6 +10,7 @@ use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use bevy_ecs_ldtk::{prelude::*, EntityInstance};
 use bevy_rapier2d::prelude::*;
+use rand::Rng;
 
 // tunables
 const LINEAR_DAMPING: f32 = 0.7;
@@ -170,6 +174,13 @@ pub struct Bubble {
     wobble_timer: Timer,
 }
 
+#[derive(Component)]
+struct CelebrationMode {
+    dir_timer: Timer,
+    right: bool,
+    jump_timer: Timer,
+}
+
 impl Default for GroundState {
     fn default() -> Self {
         Self {
@@ -205,6 +216,7 @@ fn spawn_ferris_system(
     ldtk_added_query: Query<(Entity, &EntityInstance), Added<EntityInstance>>,
     mut event_writer: EventWriter<FerrisConfigureEvent>,
     mut player_spawn_state: ResMut<PlayerSpawnState>,
+    level_selection: Res<LevelSelection>,
 ) {
     let my_assets = if let Some(my_assets) = my_assets {
         my_assets
@@ -245,6 +257,17 @@ fn spawn_ferris_system(
             .insert_bundle(FerrisPersistentBundle::default())
             .id();
 
+        match level_selection.as_ref() {
+            LevelSelection::Identifier(name) if name == "End" => {
+                entity_commands.insert(CelebrationMode {
+                    dir_timer: Timer::from_seconds(0.5, true),
+                    jump_timer: Timer::from_seconds(0.5, true),
+                    right: true,
+                });
+            }
+            _ => {}
+        }
+
         event_writer.send(FerrisConfigureEvent {
             entity,
             bubble: false,
@@ -266,6 +289,7 @@ fn spawn_ferris_system(
 //     }
 // }
 
+#[allow(clippy::type_complexity)]
 fn player_input_system(
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
@@ -277,7 +301,7 @@ fn player_input_system(
             &Velocity,
             &mut Transform,
         ),
-        With<PlayerInputTarget>,
+        (With<PlayerInputTarget>, Without<CelebrationMode>),
     >,
     mut event_writer: EventWriter<FerrisConfigureEvent>,
 ) {
@@ -346,6 +370,43 @@ fn player_input_system(
         external_impulse.impulse.y = impulse_v;
         // external_impulse.torque_impulse = rot_impulse;
         transform.translation.z = FERRIS_Z; // crappy hack
+    }
+}
+
+fn player_celebrate_system(
+    time: Res<Time>,
+    mut query: Query<(&mut ExternalImpulse, &mut CelebrationMode, &GroundState)>,
+) {
+    let mut rng = rand::thread_rng();
+    for (mut external_impulse, mut celebraton_mode, ground_state) in &mut query {
+        celebraton_mode.dir_timer.tick(time.delta());
+        celebraton_mode.jump_timer.tick(time.delta());
+
+        if celebraton_mode.dir_timer.just_finished() {
+            celebraton_mode.right = !celebraton_mode.right;
+            celebraton_mode
+                .dir_timer
+                .set_duration(Duration::from_secs_f32(rng.gen_range(0.2..0.5)));
+        }
+        let impulse_h = if celebraton_mode.right {
+            WALK_IMPULSE_GROUND
+        } else {
+            -WALK_IMPULSE_GROUND
+        };
+
+        let impulse_v = if celebraton_mode.jump_timer.just_finished() {
+            celebraton_mode
+                .jump_timer
+                .set_duration(Duration::from_secs_f32(rng.gen_range(0.5..1.0)));
+            JUMP_IMPULSE
+        } else {
+            0.0
+        };
+
+        if ground_state.on_ground {
+            external_impulse.impulse.x = impulse_h;
+            external_impulse.impulse.y = impulse_v;
+        }
     }
 }
 
@@ -649,7 +710,8 @@ impl Plugin for FerrisPlugin {
             SystemSet::on_update(GameState::InGame)
                 .label(system_labels::Input)
                 .after(system_labels::Ground)
-                .with_system(player_input_system), // .with_system(adjust_friction_system),
+                .with_system(player_input_system)
+                .with_system(player_celebrate_system), // .with_system(adjust_friction_system),
         );
 
         app.add_system_set(
