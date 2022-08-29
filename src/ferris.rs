@@ -1,11 +1,10 @@
-use std::f32::consts::E;
 use std::time::Duration;
 
 use crate::assets::MyAssets;
 use crate::camera::CameraTarget;
 use crate::spritesheet::{Spritesheet, SpritesheetAnimation};
 use crate::world::PlayerSpawnState;
-use crate::{firework, Despawn, GameState};
+use crate::{Despawn, GameState};
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 use bevy_ecs_ldtk::{prelude::*, EntityInstance};
@@ -207,7 +206,7 @@ pub struct FerrisConfigureEvent {
     pub bubble: bool,
 }
 
-#[allow(clippy::type_complexity)]
+#[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn spawn_ferris_system(
     mut commands: Commands,
     my_assets: Option<Res<MyAssets>>,

@@ -2,9 +2,7 @@ use std::time::Duration;
 
 use bevy::{math::Vec3Swizzles, prelude::*};
 use bevy_ecs_ldtk::LevelSelection;
-use bevy_rapier2d::prelude::{
-    AdditionalMassProperties, Collider, ExternalImpulse, RigidBody, Velocity,
-};
+use bevy_rapier2d::prelude::{AdditionalMassProperties, ExternalImpulse, RigidBody};
 use rand::Rng;
 
 use crate::{assets::MyAssets, Despawn};
@@ -40,7 +38,6 @@ pub fn explode_firework(mut commands: Commands, pos: Vec2, my_assets: Res<MyAsse
                 .insert(ExternalImpulse {
                     impulse: dir.mul_vec3(vel).xy() * radius,
                     torque_impulse: 10.0,
-                    ..default()
                 })
                 .insert(AdditionalMassProperties::Mass(0.1))
                 .insert(Name::new("firework"))
