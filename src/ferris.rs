@@ -333,20 +333,21 @@ fn player_input_system(
         if input.pressed(KeyCode::D) || input.pressed(KeyCode::Right) {
             impulse_h += walk_impulse;
         }
-        #[cfg(feature = "inspector")]
-        if ground_state.in_bubble && input.just_pressed(KeyCode::P) {
-            event_writer.send(FerrisConfigureEvent {
-                entity,
-                bubble: false,
-            })
-            // change_to_walking(&mut commands, entity);
-        } else if !ground_state.in_bubble && input.just_pressed(KeyCode::P) {
-            event_writer.send(FerrisConfigureEvent {
-                entity,
-                bubble: true,
-            })
+        if cfg!(feature = "inspector") {
+            if ground_state.in_bubble && input.just_pressed(KeyCode::P) {
+                event_writer.send(FerrisConfigureEvent {
+                    entity,
+                    bubble: false,
+                })
+                // change_to_walking(&mut commands, entity);
+            } else if !ground_state.in_bubble && input.just_pressed(KeyCode::P) {
+                event_writer.send(FerrisConfigureEvent {
+                    entity,
+                    bubble: true,
+                })
 
-            // change_to_bubble(&mut commands, entity);
+                // change_to_bubble(&mut commands, entity);
+            }
         }
 
         if (ground_state.on_ground || ground_state.in_bubble)
