@@ -62,7 +62,7 @@ fn despawn_reaper_system(
             Despawn::OnLevelEnd => level_end,
         };
         if despawn {
-            info!("despawn {:?}", entity);
+            // info!("despawn {:?}", entity);
             commands.entity(entity).despawn_recursive();
         }
     }

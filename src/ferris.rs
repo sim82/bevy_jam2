@@ -35,7 +35,7 @@ const WALKING: bool = true;
 const MAX_WALK_VEL: f32 = 90.0;
 
 const FERRIS_Z: f32 = 4.0;
-const BUBBLE_Z: f32 = 5.0;
+const BUBBLE_Z: f32 = 8.0; // WTF: why is ferris at z 7.0?
 
 #[derive(Default, Clone, Component, Reflect)]
 #[reflect(Component)]
@@ -333,6 +333,7 @@ fn player_input_system(
         if input.pressed(KeyCode::D) || input.pressed(KeyCode::Right) {
             impulse_h += walk_impulse;
         }
+        #[cfg(feature = "inspector")]
         if ground_state.in_bubble && input.just_pressed(KeyCode::P) {
             event_writer.send(FerrisConfigureEvent {
                 entity,
