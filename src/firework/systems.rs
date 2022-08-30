@@ -1,12 +1,12 @@
-use std::time::Duration;
-
 use bevy::{math::Vec3Swizzles, prelude::*};
 use bevy_ecs_ldtk::LevelSelection;
 use bevy_rapier2d::prelude::{AdditionalMassProperties, ExternalImpulse, RigidBody};
 use rand::Rng;
+use std::time::Duration;
 
 use crate::{assets::MyAssets, Despawn};
 
+use super::resources::FireworkTest;
 pub fn explode_firework(mut commands: Commands, pos: Vec2, my_assets: Res<MyAssets>) {
     let mut rng = rand::thread_rng();
 
@@ -46,7 +46,7 @@ pub fn explode_firework(mut commands: Commands, pos: Vec2, my_assets: Res<MyAsse
     }
 }
 
-fn test_firework_system(
+pub fn test_firework_system(
     commands: Commands,
     time: Res<Time>,
     my_assets: Option<Res<MyAssets>>,
@@ -74,20 +74,5 @@ fn test_firework_system(
                 .set_duration(Duration::from_secs_f32(rng.gen_range(0.2..1.5)));
             // firework.timer.reset();
         }
-    }
-}
-
-struct FireworkTest {
-    timer: Timer,
-}
-
-pub struct FireworkPlugin;
-
-impl Plugin for FireworkPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_system(test_firework_system)
-            .insert_resource(FireworkTest {
-                timer: Timer::from_seconds(0.7, true),
-            });
     }
 }
