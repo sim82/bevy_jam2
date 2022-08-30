@@ -5,12 +5,8 @@ use bevy::{math::Vec3Swizzles, prelude::*, utils::HashMap};
 use bevy_ecs_ldtk::LevelSelection;
 use bevy_rapier2d::prelude::*;
 
-#[derive(Component)]
-struct ColliderRoot {
-    level: LevelSelection,
-}
-
-fn spawn_wall_collider_system(
+use super::components::ColliderRoot;
+pub fn spawn_wall_collider_system(
     mut commands: Commands,
     query: Query<(Entity, &Transform), Added<Wall>>,
     root_query: Query<(Entity, &mut ColliderRoot)>,
@@ -119,31 +115,4 @@ fn spawn_wall_collider_system(
     commands
         .entity(root)
         .insert_children(0, &collider_entities[..]);
-}
-
-pub struct CollisionPlugin;
-impl Plugin for CollisionPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_system(spawn_wall_collider_system)
-            .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(64.0)) // assume that ferris is about 25cm tall
-            .insert_resource(RapierConfiguration {
-                gravity: Vec2::Y * -9.81 * 20.0,
-                ..default()
-            });
-
-        #[cfg(feature = "debug_ui")]
-        app.add_plugin(RapierDebugRenderPlugin::default())
-            .insert_resource(DebugRenderContext {
-                enabled: false,
-                pipeline: bevy_rapier2d::rapier::prelude::DebugRenderPipeline::new(
-                    default(),
-                    DebugRenderMode::all(),
-                ),
-            });
-
-        // {
-        //     mode: DebugRenderMode::all(),
-        //     ..default()
-        // })
-    }
 }
