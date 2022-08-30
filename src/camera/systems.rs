@@ -1,12 +1,7 @@
+use super::components::{CameraTarget, TrackingCamera};
 use bevy::{math::Vec3Swizzles, prelude::*};
 
-#[derive(Component, Clone)]
-pub struct CameraTarget;
-
-#[derive(Component, Clone)]
-pub struct TrackingCamera;
-
-fn track_camera_system(
+pub fn track_camera_system(
     mut camera_query: Query<&mut Transform, (With<Camera2d>, With<TrackingCamera>)>,
     target_query: Query<&Transform, (With<CameraTarget>, Without<TrackingCamera>)>,
 ) {
@@ -37,10 +32,3 @@ fn track_camera_system(
 //         }
 //     }
 // }
-pub struct CameraPlugin;
-
-impl Plugin for CameraPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_system_to_stage(CoreStage::Last, track_camera_system);
-    }
-}
