@@ -1,213 +1,20 @@
-use std::time::Duration;
-
-use crate::assets::MyAssets;
-use crate::camera::CameraTarget;
-use crate::spritesheet::{Spritesheet, SpritesheetAnimation};
-use crate::world::PlayerSpawnState;
-use crate::{Despawn, GameState};
-use bevy::math::Vec3Swizzles;
-use bevy::prelude::*;
+use super::components::*;
+use super::constants::*;
+use super::events::*;
+use crate::{
+    assets::MyAssets,
+    spritesheet::{Spritesheet, SpritesheetAnimation},
+    world::PlayerSpawnState,
+    Despawn,
+};
+use bevy::{math::Vec3Swizzles, prelude::*};
 use bevy_ecs_ldtk::{prelude::*, EntityInstance};
 use bevy_rapier2d::prelude::*;
 use rand::Rng;
-
-// tunables
-const LINEAR_DAMPING: f32 = 0.7;
-const BALL_LINEAR_DAMPING: f32 = 1.0;
-const FRICTION: f32 = 0.5;
-const BALL_FRICTION: f32 = 0.3;
-const RESTITUTION: f32 = 0.3;
-const BALL_RESTITUTION: f32 = 2.0;
-
-const WALK_IMPULSE_GROUND: f32 = 0.3;
-const WALK_IMPULSE_AIR: f32 = 0.05;
-const JUMP_IMPULSE: f32 = 4.0;
-
-const JUMP_IMPULSE_BALL: f32 = 4.0;
-
-const _ROT_IMPULSE: f32 = 0.00005;
-
-const JUMP_TIMEOUT: f32 = 0.3;
-const LETHAL_VELOCITY: f32 = -150.0;
-
-const WALKING: bool = true;
-
-const MAX_WALK_VEL: f32 = 90.0;
-
-const FERRIS_Z: f32 = 4.0;
-const BUBBLE_Z: f32 = 8.0; // WTF: why is ferris at z 7.0?
-
-#[derive(Default, Clone, Component, Reflect)]
-#[reflect(Component)]
-pub struct Keys {
-    pub key1: bool,
-}
-
-#[derive(Clone, Bundle, Default)]
-pub struct FerrisPersistentBundle {
-    pub keys: Keys,
-}
-
-#[derive(Clone, Bundle)]
-pub struct FerrisBundle {
-    pub rigid_body: RigidBody,
-    pub collider: Collider,
-    pub external_impulse: ExternalImpulse,
-    pub player_input_targtet: PlayerInputTarget,
-    pub camera_target: CameraTarget,
-    pub ccd: Ccd,
-    pub velocity: Velocity,
-    pub locked_axes: LockedAxes,
-    pub restitution: Restitution,
-    pub damping: Damping,
-    pub friction: Friction,
-    pub collider_mass_properties: ColliderMassProperties,
-    pub ground_state: GroundState,
-    pub gravity_scale: GravityScale,
-}
-
-impl Default for FerrisBundle {
-    fn default() -> Self {
-        FerrisBundle::bubble()
-    }
-}
-
-impl FerrisBundle {
-    pub fn walking() -> Self {
-        FerrisBundle {
-            rigid_body: RigidBody::Dynamic,
-            collider: Collider::convex_hull(&[
-                Vec2::new(5.0, -5.0),
-                Vec2::new(-5.0, -5.0),
-                Vec2::new(-7.0, 3.0),
-                Vec2::new(0.0, 8.0),
-                Vec2::new(7.0, 3.0),
-            ])
-            .unwrap(),
-            external_impulse: ExternalImpulse::default(),
-            player_input_targtet: PlayerInputTarget,
-            camera_target: CameraTarget,
-            ccd: Ccd { enabled: true },
-            velocity: Velocity::default(),
-            locked_axes: LockedAxes::ROTATION_LOCKED,
-            restitution: Restitution {
-                coefficient: RESTITUTION,
-                ..default()
-            },
-            damping: Damping {
-                linear_damping: LINEAR_DAMPING,
-                ..default()
-            },
-            friction: Friction {
-                coefficient: FRICTION,
-                ..default()
-            },
-            collider_mass_properties: default(),
-            ground_state: default(),
-            gravity_scale: default(),
-        }
-    }
-
-    pub fn bubble() -> Self {
-        FerrisBundle {
-            rigid_body: RigidBody::Dynamic,
-            collider: Collider::ball(14.0),
-            external_impulse: ExternalImpulse::default(),
-            player_input_targtet: PlayerInputTarget,
-            camera_target: CameraTarget,
-            ccd: Ccd { enabled: true },
-            velocity: Velocity::default(),
-            locked_axes: default(),
-            restitution: Restitution {
-                coefficient: BALL_RESTITUTION,
-                ..default()
-            },
-            damping: Damping {
-                linear_damping: BALL_LINEAR_DAMPING,
-                angular_damping: 1.0,
-            },
-            friction: Friction {
-                coefficient: BALL_FRICTION,
-                ..default()
-            },
-            collider_mass_properties: ColliderMassProperties::Density(0.3),
-            ground_state: GroundState::default().with_bubble(),
-            gravity_scale: GravityScale(0.5),
-        }
-    }
-}
-
-impl From<EntityInstance> for FerrisBundle {
-    fn from(_: EntityInstance) -> Self {
-        FerrisBundle::default()
-    }
-}
-
-#[derive(Clone, Default, Bundle, LdtkEntity)]
-pub struct FerrisLdtkBundle {
-    #[from_entity_instance]
-    #[bundle]
-    pub spawnpoint_bundle: FerrisBundle,
-}
-
-// #[derive(Component, Default, Clone)]
-// pub struct FerrisSpawnpoint;
-
-#[derive(Component, Clone)]
-pub struct PlayerInputTarget;
-
-#[derive(Component, Clone)]
-pub struct GroundState {
-    on_ground: bool,
-    jump_timer: Timer,
-    dead: bool,
-    terminal_velocity: bool,
-
-    // FIXME: this stuff does not belong in ground-state
-    wobble: bool,
-    pub in_bubble: bool,
-}
-
-#[derive(Component)]
-pub struct Bubble {
-    wobble_timer: Timer,
-}
-
-#[derive(Component)]
-struct CelebrationMode {
-    dir_timer: Timer,
-    right: bool,
-    jump_timer: Timer,
-}
-
-impl Default for GroundState {
-    fn default() -> Self {
-        Self {
-            on_ground: false,
-            jump_timer: Timer::from_seconds(JUMP_TIMEOUT, false),
-            dead: false,
-            terminal_velocity: false,
-            wobble: false,
-            in_bubble: false,
-        }
-    }
-}
-
-impl GroundState {
-    fn with_bubble(mut self) -> Self {
-        self.in_bubble = true;
-        self
-    }
-}
-
-#[derive(Debug)]
-pub struct FerrisConfigureEvent {
-    pub entity: Entity,
-    pub bubble: bool,
-}
+use std::time::Duration;
 
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
-fn spawn_ferris_system(
+pub fn spawn_ferris_system(
     mut commands: Commands,
     my_assets: Option<Res<MyAssets>>,
     spritesheets: Res<Assets<Spritesheet>>,
@@ -289,7 +96,7 @@ fn spawn_ferris_system(
 // }
 
 #[allow(clippy::type_complexity)]
-fn player_input_system(
+pub fn player_input_system(
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
     mut query: Query<
@@ -374,7 +181,7 @@ fn player_input_system(
     }
 }
 
-fn player_celebrate_system(
+pub fn player_celebrate_system(
     time: Res<Time>,
     mut query: Query<(&mut ExternalImpulse, &mut CelebrationMode, &GroundState)>,
 ) {
@@ -411,7 +218,7 @@ fn player_celebrate_system(
     }
 }
 
-fn reconfigure_ferris_system(
+pub fn reconfigure_ferris_system(
     mut commands: Commands,
     mut event_reader: EventReader<FerrisConfigureEvent>,
     my_assets: Option<Res<MyAssets>>,
@@ -501,7 +308,7 @@ fn reconfigure_ferris_system(
     }
 }
 
-fn ground_trace_system(
+pub fn ground_trace_system(
     rapier_context: Res<RapierContext>,
     mut query: Query<(&mut GroundState, &Transform, &Collider, &Velocity)>,
 ) {
@@ -540,7 +347,7 @@ fn _adjust_friction_system(mut query: Query<(&mut Friction, &GroundState)>) {
 }
 
 #[allow(clippy::collapsible_else_if)]
-fn adjust_animation_system(
+pub fn adjust_animation_system(
     mut query: Query<
         (
             &GroundState,
@@ -608,7 +415,7 @@ fn adjust_animation_system(
 }
 
 #[allow(clippy::type_complexity)]
-fn death_system(
+pub fn death_system(
     mut commands: Commands,
     mut query: Query<
         (
@@ -646,7 +453,7 @@ fn death_system(
 }
 
 #[allow(clippy::type_complexity)]
-fn bubble_wobble_system(
+pub fn bubble_wobble_system(
     time: Res<Time>,
     mut bubble_query: Query<(&mut Bubble, &mut Transform)>,
     ferris_query: Query<&GroundState, (With<PlayerInputTarget>, Without<Bubble>)>,
@@ -682,55 +489,5 @@ fn bubble_wobble_system(
             1.0 + (tx1.sin() as f32) * c1 + (tx2.cos() as f32) * c2 + (tx3.sin() as f32) * c3;
         bubble_transform.scale.y =
             1.0 + (ty1.sin() as f32) * c1 + (ty2.cos() as f32) * c2 + (ty3.sin() as f32) * c3;
-    }
-}
-
-pub struct FerrisPlugin;
-
-mod system_labels {
-    use bevy::prelude::*;
-    #[derive(SystemLabel)]
-    pub struct Ground;
-
-    #[derive(SystemLabel)]
-    pub struct Input;
-
-    #[derive(SystemLabel)]
-    pub struct Other;
-}
-
-impl Plugin for FerrisPlugin {
-    fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_system_set(
-            SystemSet::new() //on_update(GameState::InGame)
-                .label(system_labels::Ground)
-                .with_system(ground_trace_system),
-        );
-
-        app.add_system_set(
-            SystemSet::on_update(GameState::InGame)
-                .label(system_labels::Input)
-                .after(system_labels::Ground)
-                .with_system(player_input_system)
-                .with_system(player_celebrate_system), // .with_system(adjust_friction_system),
-        );
-
-        app.add_system_set(
-            SystemSet::new() //on_update(GameState::InGame)
-                .label(system_labels::Other)
-                .after(system_labels::Input)
-                .with_system(adjust_animation_system)
-                .with_system(death_system.after(adjust_animation_system)),
-        );
-
-        app.add_system(bubble_wobble_system)
-            .add_system(spawn_ferris_system)
-            .add_system(adjust_animation_system)
-            .add_system(reconfigure_ferris_system);
-        // .add_system(cleanup_bubbles_system);
-
-        app.add_event::<FerrisConfigureEvent>();
-
-        app.register_type::<Keys>();
     }
 }
