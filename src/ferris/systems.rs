@@ -13,6 +13,7 @@ use bevy_rapier2d::prelude::*;
 use rand::Rng;
 use std::time::Duration;
 
+/// Spawn player character on level start.
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 pub fn spawn_ferris_system(
     mut commands: Commands,
@@ -81,20 +82,7 @@ pub fn spawn_ferris_system(
     }
 }
 
-// fn cleanup_bubbles_system(
-//     mut commands: Commands,
-//     bubble_query: Query<(Entity, &ImpulseJoint), With<Bubble>>,
-//     query: Query<Entity, Without<Bubble>>,
-// ) {
-//     // polling this constantly is crap. probably should use state transitions for clean level transitions
-//     for (entity, joint) in &bubble_query {
-//         if query.get(joint.parent).is_err() {
-//             info!("despawn bubble {:?}", entity);
-//             commands.entity(entity).despawn();
-//         }
-//     }
-// }
-
+/// Apply user input. Player control is completely based on rapier physics, using external-impulse.
 #[allow(clippy::type_complexity)]
 pub fn player_input_system(
     input: Res<Input<KeyCode>>,
@@ -181,6 +169,7 @@ pub fn player_input_system(
     }
 }
 
+/// Special mode for end screen. Disable user-imput and jump around randomly.
 pub fn player_celebrate_system(
     time: Res<Time>,
     mut query: Query<(&mut ExternalImpulse, &mut CelebrationMode, &GroundState)>,
@@ -218,6 +207,8 @@ pub fn player_celebrate_system(
     }
 }
 
+/// re-configure character into walk or bubble mode. Removes and re-adds the transient
+/// character components, but leaves persistent stuff (e.g. transformation, items...) in place
 pub fn reconfigure_ferris_system(
     mut commands: Commands,
     mut event_reader: EventReader<FerrisConfigureEvent>,
@@ -308,6 +299,9 @@ pub fn reconfigure_ferris_system(
     }
 }
 
+/// Check ground state of character by downwards shape-cast of the collision shape.
+/// In walk mode it uses smaller cube shape to make it less sensitive on sidewards impatcts.
+/// Also checks impact velocity for lethality and bubble wobble systems.
 pub fn ground_trace_system(
     rapier_context: Res<RapierContext>,
     mut query: Query<(&mut GroundState, &Transform, &Collider, &Velocity)>,
@@ -346,6 +340,7 @@ fn _adjust_friction_system(mut query: Query<(&mut Friction, &GroundState)>) {
     }
 }
 
+/// Control the character animation according to the current state (velocity, ground contact etc)
 #[allow(clippy::collapsible_else_if)]
 pub fn adjust_animation_system(
     mut query: Query<
@@ -360,6 +355,8 @@ pub fn adjust_animation_system(
 ) {
     for (ground_state, velocity, mut animation, transform) in &mut query {
         if !ground_state.in_bubble {
+            // walk mode: mainly react to ground state and velocity
+
             let walking = velocity.linvel.x.abs() > 0.2;
             let vel_right = velocity.linvel.x >= 0.0;
 
@@ -389,6 +386,7 @@ pub fn adjust_animation_system(
                 }
             }
         } else {
+            // bubble mode: rotate eyes
             let rolls = ["roll1", "roll2", "roll3", "roll0"];
 
             let pi_2 = std::f32::consts::PI / 2.0;
@@ -397,15 +395,7 @@ pub fn adjust_animation_system(
             if angle < 0.0 {
                 angle += std::f32::consts::PI * 2.0;
             }
-            // let angle = transform.rotation.angle_between(Quat::from_rotation_z(0.0));
-            // info!("angle: {}", angle);
-
-            // let (axis, angle) = transform.rotation.to_axis_angle();
-            // info!("angle: {:?} {}", axis, angle);
             let quat = ((angle / pi_2) as usize).clamp(0, rolls.len() - 1);
-            // let name = if (0.0..pi4).contains(&angle) {
-            //     "roll0"
-            // } else if (pi4..(2.0* pi4)).contains(&angle)
 
             if animation.active_animation != rolls[quat] {
                 animation.start_animation(rolls[quat], true);
@@ -414,6 +404,7 @@ pub fn adjust_animation_system(
     }
 }
 
+/// Check for lethal impacts etc and run death animation (+despawn)
 #[allow(clippy::type_complexity)]
 pub fn death_system(
     mut commands: Commands,
@@ -452,6 +443,9 @@ pub fn death_system(
     }
 }
 
+/// Control bubble wobble animation depending on ground impact
+/// The basic idea is to have three frequency components per dimension, where the
+/// higher frequency components are blended in after impacts.
 #[allow(clippy::type_complexity)]
 pub fn bubble_wobble_system(
     time: Res<Time>,
@@ -476,8 +470,6 @@ pub fn bubble_wobble_system(
 
         // blend between low and high frequency wobble modes, based on wobble-timer
         let l = bubble.wobble_timer.percent_left();
-        //  1.0
-        //     - (bubble.wobble_timer.elapsed_secs() / bubble.wobble_timer.duration().as_secs_f32());
 
         let c1 = 0.05 * (1.0 - l);
         let c2 = 0.05 * l;

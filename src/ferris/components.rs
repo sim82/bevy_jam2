@@ -3,17 +3,21 @@ use crate::camera::CameraTarget;
 use bevy::prelude::*;
 use bevy_ecs_ldtk::{prelude::*, EntityInstance};
 use bevy_rapier2d::prelude::*;
+
+/// Item repository (currently only keys...)
 #[derive(Default, Clone, Component, Reflect)]
 #[reflect(Component)]
 pub struct Keys {
     pub key1: bool,
 }
 
+/// Bundle for character components that are persistent across re-configure events.
 #[derive(Clone, Bundle, Default)]
 pub struct FerrisPersistentBundle {
     pub keys: Keys,
 }
 
+/// Bundle for character components that will get re-created on re-configure events.
 #[derive(Clone, Bundle)]
 pub struct FerrisBundle {
     pub rigid_body: RigidBody,
@@ -39,6 +43,7 @@ impl Default for FerrisBundle {
 }
 
 impl FerrisBundle {
+    /// Components for walk mode
     pub fn walking() -> Self {
         FerrisBundle {
             rigid_body: RigidBody::Dynamic,
@@ -74,6 +79,7 @@ impl FerrisBundle {
         }
     }
 
+    /// Components for bubble mode
     pub fn bubble() -> Self {
         FerrisBundle {
             rigid_body: RigidBody::Dynamic,
@@ -119,26 +125,36 @@ pub struct FerrisLdtkBundle {
 // #[derive(Component, Default, Clone)]
 // pub struct FerrisSpawnpoint;
 
+/// Marker component for the user input target.
 #[derive(Component, Clone)]
 pub struct PlayerInputTarget;
 
+/// Ground state, i.e. is the player standung on the ground or not.
+/// Currently contains stuff that is not strictly related to the ground state,
+/// which should be factored out into a player-character specific component.
+/// Ground state would also be used for NPCs / enemies etc.
 #[derive(Component, Clone)]
 pub struct GroundState {
+    /// Entity is standing on the ground
     pub on_ground: bool,
-    pub jump_timer: Timer,
-    pub dead: bool,
+
+    /// Entity has reached lethal downward velocity on last ground contact.
     pub terminal_velocity: bool,
 
     // FIXME: this stuff does not belong in ground-state
+    pub jump_timer: Timer,
+    pub dead: bool,
     pub wobble: bool,
     pub in_bubble: bool,
 }
 
+/// Bubble animation data.
 #[derive(Component)]
 pub struct Bubble {
     pub wobble_timer: Timer,
 }
 
+/// Put's player into celebration mode (jump around)
 #[derive(Component)]
 pub struct CelebrationMode {
     pub dir_timer: Timer,
